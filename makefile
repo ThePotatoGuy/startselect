@@ -5,9 +5,9 @@ LFLAGS=-lmingw32 -lSDL2main -lSDL2
 
 HEADERS=
 
-OBJECTS=test.o
+OBJECTS=runner.o
 
-EXECUTABLE=test.exe
+EXECUTABLE=startselect.exe
 
 #----------------------------
 
