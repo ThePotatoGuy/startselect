@@ -8,15 +8,18 @@
  * 2nd thread actuallt waits for controller input and displays the information
  */
 
-//#include "SDL2/SDL.h"
-//#include <pthread.h> // mingw64 has the implementation
-//#include <stdio.h> // for errors
-//
-
 #ifndef SS_MENU_H
 #define SS_MENU_H
 
+void* ss_event_handling(void *thread_data);
+
+/*
+ * Runs the menu (more descriptions later)
+ */
 int ss_menu_run();
+
+// temp
+void* ss_open_window(void *thread_data);
 
 #endif
 
