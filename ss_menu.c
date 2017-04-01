@@ -22,6 +22,7 @@
 #include <stdlib.h>
 
 #include "ss_constants.h"
+#include "ss_gamecontroller.h"
 #include "ss_parallel_helpers.h"
 
 #include "ss_menu.h"
@@ -38,6 +39,8 @@ typedef struct{
 } ss_event_data;
 
 /*  STATIC FUNCTIONS    =====================================================*/
+
+
 
 /*  IMPLEMENTATION  =========================================================*/
 
@@ -66,6 +69,8 @@ void* ss_event_handling(void *thread_data){
             }
         }
     }
+
+    controller = SDL_GameControllerOpen(0);
 
     // event handlingloop
     while (!quit){
@@ -143,6 +148,8 @@ int ss_menu_run(){
         }
     }
 
+    controller = SDL_GameControllerOpen(0);
+    printf("que %i\n", SDL_GameControllerEventState(SDL_QUERY));
     SDL_Event event; // event handler
 
     // event handling loop
@@ -150,27 +157,41 @@ int ss_menu_run(){
         // only do things when we have an event
         while (SDL_PollEvent(&event)){
 
-            // user requets quit
-            if (event.type == SDL_QUIT){
-                quit = 1;
-            }else if (event.type == SDL_KEYDOWN){
-
-                printf("keyt %i\n", event.key.keysym.sym);
-                // spacebar stuff
-                switch (event.key.keysym.sym){
-                    case SDLK_SPACE:
-                    {
-                        printf("in here\n");
-                        quit = 1;
-                        break;
+            switch (event.type){
+                case SDL_QUIT:
+                {
+                    quit = 1;
+                    break;
+                }
+                case SDL_KEYDOWN:
+                {
+                    // spacebar stuff
+                    switch (event.key.keysym.sym){
+                        case SDLK_SPACE:
+                        {
+                            quit = 1;
+                            break;
+                        }
+                        default: break;
                     }
-                    default: break;
+                }
+                case SDL_CONTROLLERBUTTONDOWN:
+                case SDL_CONTROLLERBUTTONUP:
+                {
+                    printf("in here\n");
+                    ss_print_input(&event.cbutton);
+                    break;
+                }
+                default:
+                {
+                    break;
                 }
             }
         }
     }
 
     // quit
+    SDL_GameControllerClose(controller);
     SDL_DestroyWindow(window);
     SDL_Quit();
 

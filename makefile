@@ -1,11 +1,14 @@
 CC=gcc
 
 CFLAGS=-c -Wall -std=c99 -g -O0
-LFLAGS=-lmingw32 -lSDL2main -lSDL2 -lpthread
+LFLAGS=-lmingw32 -lSDL2main -lSDL2 -lpthread -lhidapi
 
-HEADERS=ss_config.h ss_parallel_helpers.h ss_constants.h ss_menu.h
 
-OBJECTS=ss_parallel_helpers.o ss_menu.o ss_runner.o
+HEADONE=ss_config.h ss_parallel_helpers.h ss_constants.h ss_menu.h
+HEADTWO=ss_gamecontroller.h
+HEADERS=$(HEADONE) $(HEADTWO)
+
+OBJECTS=ss_parallel_helpers.o ss_gamecontroller.o ss_menu.o ss_runner.o
 
 EXECUTABLE=startselect.exe
 
