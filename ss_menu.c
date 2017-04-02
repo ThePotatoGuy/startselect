@@ -14,12 +14,15 @@
  *  of button pressesa nd stuff
  */
 
-#include "SDL2/SDL.h"
+#include <windows.h>
+#include <xinput.h>
 
 #include <pthread.h>
 
 #include <stdio.h>
 #include <stdlib.h>
+
+#include "SDL2/SDL.h"
 
 #include "ss_constants.h"
 #include "ss_gamecontroller.h"
@@ -47,36 +50,38 @@ typedef struct{
 void* ss_event_handling(void *thread_data){
     ss_event_data *data;
     int quit;
+    XINPUT_STATE state;
+    DWORD res;
+    DWORD packet_num;
 
     data = (ss_event_data*)thread_data;
     quit = 0;
+    ZeroMemory(&state, sizeof(XINPUT_STATE));
+    packet_num = 0;
 
-    SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
-
-    // first lets just grab the ps3 controller manually
-    SDL_GameController *controller = NULL;
-
-    int test = 1;
-    for (int i = 0; test && i < SDL_NumJoysticks(); i++){
-        if (SDL_IsGameController(i)){
-            controller = SDL_GameControllerOpen(i);
-            if (controller){
-                printf("Controller id: %i\n controler name: %s\n", i,
-                        SDL_GameControllerName(controller));
-            }else{
-                printf("Could not open gamecontroller %i: %s\n",
-                        i, SDL_GetError());
-            }
-        }
-    }
-
-    controller = SDL_GameControllerOpen(0);
+    int controller_id = 0; // assuming the first controller for now
+    int rc = ss_init_gamecontroller();
 
     // event handlingloop
     while (!quit){
-        // for now, just wait until we get signal to stop
+        
+        res = XInputGetState(controller_id, &state);
+
+        if(res == ERROR_SUCCESS){
+            // connected
+            if(state.dwPacketNumber != packet_num){
+                // differences occureed
+                ss_print_input(&(state.Gamepad));
+            }
+        }else{
+            printf("connection error\n");
+        }
+        
+
         quit = ph_get(data->end_mutex, data->end);
     }
+
+    ss_destroy_gamecontroller();
 
     SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);
     return NULL;
@@ -84,7 +89,6 @@ void* ss_event_handling(void *thread_data){
 
 int ss_menu_run(){
 
-    /*
     ss_event_data data;
     pthread_mutex_t end_mutex;
     pthread_attr_t  join;
@@ -100,20 +104,14 @@ int ss_menu_run(){
     data.end = &end;
     pthread_attr_setdetachstate(&join, PTHREAD_CREATE_JOINABLE);
 
-    pthread_t window_thread;
     pthread_t controller_thread;
     
-    printf("made it here\n");
-    pthread_create(&window_thread, &join, ss_open_window, (void*)&data);
-    pthread_create(&controller_thread, &join, ss_open_window, (void*)&data);
+    pthread_create(&controller_thread, &join, ss_event_handling, (void*)&data);
 
-    pthread_join(controller_thread, &status);
-    pthread_join(window_thread, &status);
-
-    pthread_mutex_destroy(&end_mutex);
-    pthread_attr_destroy(&join);
-    */
-
+    //ph_set(&end_mutex, &end, 1);
+    //pthread_join(controller_thread, &status);
+    //return 0;
+    
     SDL_Window *window;
     int quit;
 
@@ -148,7 +146,7 @@ int ss_menu_run(){
         }
     }
 
-    controller = SDL_GameControllerOpen(0);
+//    controller = SDL_GameControllerOpen(0);
     printf("que %i\n", SDL_GameControllerEventState(SDL_QUERY));
     SDL_Event event; // event handler
 
@@ -178,8 +176,8 @@ int ss_menu_run(){
                 case SDL_CONTROLLERBUTTONDOWN:
                 case SDL_CONTROLLERBUTTONUP:
                 {
-                    printf("in here\n");
-                    ss_print_input(&event.cbutton);
+    //                printf("in here\n");
+  //                  ss_print_input(&event.cbutton);
                     break;
                 }
                 default:
@@ -190,8 +188,16 @@ int ss_menu_run(){
         }
     }
 
+    
+    ph_set(&end_mutex, &end, 1);
+
+    pthread_join(controller_thread, &status);
+
+    pthread_mutex_destroy(&end_mutex);
+    pthread_attr_destroy(&join);
+
     // quit
-    SDL_GameControllerClose(controller);
+    //SDL_GameControllerClose(controller);
     SDL_DestroyWindow(window);
     SDL_Quit();
 

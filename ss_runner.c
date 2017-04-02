@@ -6,16 +6,20 @@
  * Launches the program
  */
 
-#include "SDL2/SDL.h"
 
-#include "hidapi/hidapi.h"
+#include <windows.h>
+#include <xinput.h>
 
 #include <stdio.h>
 #include <wchar.h>
 #include <string.h>
 #include <stdlib.h>
 
+#include "SDL2/SDL.h"
+
+#include "ss_constants.h"
 #include "ss_menu.h"
+#include "ss_gamecontroller.h"
 
 // internet told me to do this
 #ifdef ___cplusplus
@@ -42,7 +46,7 @@ int main(int argc, char *argv[]){
             }
         }
     }*/
-	int res;
+/*	int res;
 	unsigned char buf[256];
 	wchar_t wstr[MAX_STR];
 	hid_device *handle;
@@ -53,7 +57,6 @@ int main(int argc, char *argv[]){
 	
 	if (hid_init())
 		return -1;
-/*
 	devs = hid_enumerate(0x0, 0x0);
 	cur_dev = devs;	
 	while (cur_dev) {
@@ -67,7 +70,7 @@ int main(int argc, char *argv[]){
 		cur_dev = cur_dev->next;
 	}
 	hid_free_enumeration(devs);
-*/
+
 	// Set up the command buffer.
 	memset(buf,0x00,sizeof(buf));
 	buf[0] = 0x01;
@@ -193,14 +196,32 @@ int main(int argc, char *argv[]){
 	hid_close(handle);
 
 	/* Free static HIDAPI objects. */
-	hid_exit();
+//	hid_exit();
+
 
 
     printf("starting\n");
-    ss_menu_run();
 
+    /*
+    XINPUT_STATE state;
+    DWORD res;
+    if (ss_init_gamecontroller() != SS_RETURN_SUCCESS){
+        printf("bad \n");
+    }else{
+        int control = 0;
+        while(1){
+            res = XInputGetState(control, &state);
+            if(res == ERROR_SUCCESS){
+                ss_print_input(&(state.Gamepad));
+            }
+        }
+    }
+*/
+
+    ss_menu_run();
     printf("ending\n");
 
+    ss_destroy_gamecontroller();
     // for now
     //SDL_Quit();
     return 0;

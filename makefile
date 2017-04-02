@@ -1,7 +1,7 @@
 CC=gcc
 
-CFLAGS=-c -Wall -std=c99 -g -O0
-LFLAGS=-lmingw32 -lSDL2main -lSDL2 -lpthread -lhidapi
+CFLAGS=-c -Wall -std=c99 -g 
+LFLAGS=-lmingw32 -lSDL2main -lSDL2 -lpthread -lXinput -lm
 
 
 HEADONE=ss_config.h ss_parallel_helpers.h ss_constants.h ss_menu.h
