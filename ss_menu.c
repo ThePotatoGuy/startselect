@@ -53,6 +53,8 @@ void* ss_event_handling(void *thread_data){
     XINPUT_STATE state;
     DWORD res;
     DWORD packet_num;
+    ss_generic_controller controller;
+    int rc;
 
     data = (ss_event_data*)thread_data;
     quit = 0;
@@ -60,7 +62,14 @@ void* ss_event_handling(void *thread_data){
     packet_num = 0;
 
     int controller_id = 0; // assuming the first controller for now
-    int rc = ss_init_gamecontroller();
+    ss_init_gamecontroller();
+    
+    if(ss_init_gamecontroller() == SS_RETURN_ERROR
+            || ss_init_generic_controller(&controller) == SS_RETURN_ERROR){
+
+        printf("failureeeee\n");
+        return NULL;
+    }
 
     // event handlingloop
     while (!quit){
@@ -71,7 +80,8 @@ void* ss_event_handling(void *thread_data){
             // connected
             if(state.dwPacketNumber != packet_num){
                 // differences occureed
-                ss_print_input(&(state.Gamepad));
+                ss_process_input(&controller, &(state.Gamepad));
+                ss_print_generic_controller(&controller);
             }
         }else{
             printf("connection error\n");
@@ -81,6 +91,7 @@ void* ss_event_handling(void *thread_data){
         quit = ph_get(data->end_mutex, data->end);
     }
 
+    ss_destroy_generic_controller(&controller);
     ss_destroy_gamecontroller();
 
     SDL_QuitSubSystem(SDL_INIT_GAMECONTROLLER);

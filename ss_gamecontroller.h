@@ -31,7 +31,7 @@ typedef struct{
 
     // size of the pressed array
     int size;
-} ss_button_presses;
+} ss_button_data;
 
 // struct that contains data about a joystick
 typedef struct{
@@ -66,7 +66,7 @@ typedef struct{
 typedef struct{
 
     // data about the buttons of this controller
-    ss_button_presses buttons;
+    ss_button_data buttons;
 
     // data about the joysticks of this controller
     ss_joystick_data joystick_left;
@@ -106,14 +106,6 @@ extern const int SS_TRIGGER_MIN;
 //  FUNCTIONS   ===============================================================
 
 /*
- * Deletes the button presses struct
- *
- * IN:
- *  @param buttons - pointer to the button presses struct to delete
- */
-void ss_destroy_button_presses(ss_button_presses *buttons);
-
-/*
  * Deletes game controller data
  */
 void ss_destroy_gamecontroller();
@@ -127,17 +119,10 @@ void ss_destroy_gamecontroller();
 void ss_destroy_generic_controller(ss_generic_controller *controller);
 
 /*
- * Initializes the button presses struct
+ * Initializes the gamecontroller data
  *
- * IN:
- *  @param buttons - the button presses struct to initializes
  * OUT:
  *  @returns SS_RETURN_SUCCESS if successful, SS_RETURN_ERROR if not
- */
-int ss_init_button_presses(ss_button_presses *buttons);
-
-/*
- * Initializes the gamecontroller data
  */
 int ss_init_gamecontroller();
 
@@ -152,14 +137,25 @@ int ss_init_gamecontroller();
 int ss_init_generic_controller(ss_generic_controller *controller);
 
 /*
- * Prints a message describing what type of input the given value is (in 
- * the context of a game controller)
- *
- * Uses values from Xinput_Gamepad to determine button type
+ * Prints the current state of the given generic controller struct
  *
  * IN:
- *  @param gamepad - XINPUT_GAMEPAD struct
+ *  @param controller - the generic controller struct
  */
-void ss_print_input(XINPUT_GAMEPAD *gamepad);
+void ss_print_generic_controller(ss_generic_controller *controller);
+
+/*
+ * Process the input into an ss_generic controller struct
+ *
+ * IN:
+ *  @param gamepad - the XINPUT_GAMEPAD struct
+ *
+ * OUT:
+ *  @param controller - ss_generic_controller struct filled with input info
+ */
+void ss_process_input(
+        ss_generic_controller *controller,
+        XINPUT_GAMEPAD *gamepad
+);
 
 #endif
