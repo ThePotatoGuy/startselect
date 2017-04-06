@@ -21,6 +21,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h> // testing time
 
 #include "SDL2/SDL.h"
 
@@ -55,6 +56,7 @@ void* ss_event_handling(void *thread_data){
     DWORD packet_num;
     ss_generic_controller controller;
     int rc;
+    LARGE_INTEGER pfcount, pfreq, pfend;
 
     data = (ss_event_data*)thread_data;
     quit = 0;
@@ -71,6 +73,9 @@ void* ss_event_handling(void *thread_data){
         return NULL;
     }
 
+    long testtime = 0;
+    QueryPerformanceFrequency(&pfreq);
+    QueryPerformanceCounter(&pfcount);
     // event handlingloop
     while (!quit){
         
@@ -82,6 +87,17 @@ void* ss_event_handling(void *thread_data){
                 // differences occureed
                 ss_process_input(&controller, &(state.Gamepad));
                 ss_print_generic_controller(&controller);
+                QueryPerformanceCounter(&pfend);
+                testtime = (1000 * (pfend.QuadPart - pfcount.QuadPart)) / 
+                    pfreq.QuadPart;
+                if(testtime > 50){
+                    printf("diff %f\n",(float)testtime);
+                }
+                pfcount = pfend;
+
+//                printf("change here\n");
+
+                packet_num = state.dwPacketNumber;
             }
         }else{
             printf("connection error\n");

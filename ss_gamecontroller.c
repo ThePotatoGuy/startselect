@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include <inttypes.h>
 #include <math.h>
 
 #include "ss_constants.h"
@@ -24,6 +25,7 @@
 //static const int BUTTON_COUNT = 14;
 #define BUTTON_COUNT 14
 #define BUTTON_STR_SIZE 20
+const int SS_BUTTON_COUNT = BUTTON_COUNT;
 
 // button descriptions
 static const char BUTTON_A[]                = "A";
@@ -106,6 +108,8 @@ static const char JOYSTICK_FMT_STR[]    = "Joystick %s: (%i, %i), (%f, %f)\n";
 
 // Trigger <left | right> (<value>), (<magnitude>), (<normalized magnitude>)
 static const char TRIGGER_FMT_STR[]     = "Trigger %s: (%i), (%f), (%f)\n";
+
+static const char POLL_FMT_STR[]        = "Poll time: %"PRIi64"\n";
 
 //  STATIC FUNCTIONS    =======================================================
 
@@ -282,18 +286,18 @@ static void setup_button_strs();
 
 void ss_destroy_gamecontroller(){
     // nothing here for now
-}
+} // ss_destroy_gamecontroller
 
 void ss_destroy_generic_controller(ss_generic_controller *controller){
     destroy_button_data(&(controller->buttons));
-}
+} // ss_destroy_generic_controller
 
 int ss_init_gamecontroller(){
 
     setup_button_strs();
 
     return SS_RETURN_SUCCESS;
-}
+} // ss_init_gamecontroller
 
 int ss_init_generic_controller(ss_generic_controller *controller){
     if (init_button_data(&(controller->buttons)) == SS_RETURN_ERROR){
@@ -307,7 +311,7 @@ int ss_init_generic_controller(ss_generic_controller *controller){
     init_trigger_right(&(controller->trigger_right));
 
     return SS_RETURN_SUCCESS;
-}
+} // ss_init_generic_controller
 
 void ss_print_generic_controller(ss_generic_controller *controller){
     print_button_data(&(controller->buttons));
@@ -315,7 +319,9 @@ void ss_print_generic_controller(ss_generic_controller *controller){
     print_joystick_data(&(controller->joystick_right));
     print_trigger_data(&(controller->trigger_left));
     print_trigger_data(&(controller->trigger_right));
-}
+
+    printf(POLL_FMT_STR, controller->poll.QuadPart);
+} // ss_print_generic_controller
 
 void ss_process_input(
         ss_generic_controller *controller, 
@@ -326,7 +332,9 @@ void ss_process_input(
     process_joystick_input(gamepad, &(controller->joystick_right));
     process_trigger_input(gamepad, &(controller->trigger_left));
     process_trigger_input(gamepad, &(controller->trigger_right));
-}
+
+    QueryPerformanceCounter(&(controller->poll));
+} // ss_process_input
 
 //  STATIC IMPLEMENTATION   ===================================================
 
@@ -335,7 +343,14 @@ static void destroy_button_data(ss_button_data *buttons){
         free(buttons->pressed);
         buttons->pressed = NULL;
     }
-}
+
+/*    if(buttons->states != NULL){
+        free(buttons->states);
+        buttons->states = NULL;
+    }*/
+
+    buttons->size = 0;
+} // destroy_button_data
 
 static const char* get_direction_str(SS_AXIS type){
     switch (type){
@@ -352,63 +367,67 @@ static const char* get_direction_str(SS_AXIS type){
             return AXIS_UNKNOWN;
         }
     }
-}
+} // get_direction_str
 
 static int init_button_data(ss_button_data *buttons){
     buttons->pressed = malloc(BUTTON_COUNT*sizeof(int));
-    buttons->size = BUTTON_COUNT;
+//    buttons->states = malloc(BUTTON_COUNT*sizeof(SS_BUTTON_STATE));
 
-    if (buttons->pressed == NULL){
+    if (buttons->pressed == NULL
+            /*|| buttons->states == NULL*/){
         return SS_RETURN_ERROR;
     }
 
+    buttons->size = BUTTON_COUNT;
+
     for (int index = 0; index < BUTTON_COUNT; index++){
         buttons->pressed[index] = 0;
+//        buttons->states[index] = SS_BUTTON_RELEASED;
     }
 
     return SS_RETURN_SUCCESS;
-}
+} // init_button_data
 
 static void init_joystick(ss_joystick_data *joystick){
     joystick->x = 0;
     joystick->y = 0;
     joystick->norm_x = 0;
     joystick->norm_y = 0;
-}
+} // init_joystick
 
 static void init_joystick_left(ss_joystick_data *joystick){
     init_joystick(joystick);
     joystick->type = SS_GAMECONTROLLER_LEFT;
-}
+} // init_joystick_left
 
 static void init_joystick_right(ss_joystick_data *joystick){
     init_joystick(joystick);
     joystick->type = SS_GAMECONTROLLER_RIGHT;
-}
+} // init_joystick_right
 
 static void init_trigger(ss_trigger_data *trigger){
     trigger->value = 0;
     trigger->magnitude = 0;
     trigger->norm_magnitude = 0;
-}
+} // init_trigger
 
 static void init_trigger_left(ss_trigger_data *trigger){
     init_trigger(trigger);
     trigger->type = SS_GAMECONTROLLER_LEFT;
-}
+} // init_trigger_left
 
 static void init_trigger_right(ss_trigger_data *trigger){
     init_trigger(trigger);
     trigger->type = SS_GAMECONTROLLER_RIGHT;
-}
+} // init_trigger_right
 
 static bool is_joystick_active(ss_joystick_data *joystick){
     return joystick->x != 0 || joystick->y != 0;
-}
+} // is_joystick_active
 
 static bool is_trigger_active(ss_trigger_data *trigger){
     return trigger->value != 0;
-}
+} // is_trigger_active
 
 static void print_button_data(ss_button_data *buttons){
     // now go thru the pressed array and print out appropriate press statements
@@ -417,7 +436,7 @@ static void print_button_data(ss_button_data *buttons){
             printf(BUTTON_FMT_STR, BUTTON_STRS[index]);
         }
     }
-}
+} // print_button_data
 
 static void print_joystick_data(ss_joystick_data *joystick){
     if (is_joystick_active(joystick)){
@@ -425,7 +444,7 @@ static void print_joystick_data(ss_joystick_data *joystick){
         printf(JOYSTICK_FMT_STR, get_direction_str(joystick->type), 
                 joystick->x, joystick->y, joystick->norm_x, joystick->norm_y);
     }
-}
+} // print_joystick_data
 
 static void print_trigger_data(ss_trigger_data *trigger){
     if (is_trigger_active(trigger)){
@@ -433,7 +452,7 @@ static void print_trigger_data(ss_trigger_data *trigger){
         printf(TRIGGER_FMT_STR, get_direction_str(trigger->type),
                 trigger->value, trigger->magnitude, trigger->norm_magnitude);
     }
-}
+} // print_trigger_data
 
 static void process_button_input(
         XINPUT_GAMEPAD *gamepad,
@@ -463,7 +482,7 @@ static void process_button_input(
         gamepad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
     buttons->pressed[SS_BUTTON_DPAD_RIGHT] = 
         gamepad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
-}
+} // process_button_input
 
 static void process_joystick_input(
         XINPUT_GAMEPAD *gamepad, 
@@ -516,7 +535,7 @@ static void process_joystick_input(
         joystick->norm_x = 0;
         joystick->norm_y = 0;
     }
-}
+} // process_joystick_input
 
 static void process_trigger_input(
         XINPUT_GAMEPAD *gamepad,
@@ -567,7 +586,7 @@ static void process_trigger_input(
         trigger->magnitude = 0;
         trigger->norm_magnitude = 0;
     }
-}
+} // process_trigger_input
 
 static void setup_button_strs(){
     strncpy(BUTTON_STRS[SS_BUTTON_A], BUTTON_A, sizeof(BUTTON_A));
@@ -592,5 +611,5 @@ static void setup_button_strs(){
             sizeof(BUTTON_DPAD_LEFT));
     strncpy(BUTTON_STRS[SS_BUTTON_DPAD_RIGHT], BUTTON_DPAD_RIGHT,
             sizeof(BUTTON_DPAD_RIGHT));
-}
+} // setup_button_strs
 

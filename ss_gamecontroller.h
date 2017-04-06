@@ -22,6 +22,12 @@ typedef enum {
     SS_GAMECONTROLLER_RIGHT
 } SS_AXIS;
 
+// state of a button
+typedef enum {
+    SS_BUTTON_RELEASED = 0,
+    SS_BUTTON_PRESSED = 1
+} SS_BUTTON_STATE;
+
 // struct that contains data about pressed buttons
 typedef struct{
 
@@ -29,7 +35,7 @@ typedef struct{
     // button. SEE CONSTANTS
     int *pressed;
 
-    // size of the pressed array
+    // size of the above arrays
     int size;
 } ss_button_data;
 
@@ -64,6 +70,9 @@ typedef struct{
 
 // struct that contains data about a controller (generic version)
 typedef struct{
+
+    // the time this generic controller was processed for input
+    LARGE_INTEGER poll;
 
     // data about the buttons of this controller
     ss_button_data buttons;
@@ -102,6 +111,9 @@ extern const int SS_JOYSTICK_MIN;
 // trigger values
 extern const int SS_TRIGGER_MAX;
 extern const int SS_TRIGGER_MIN;
+
+// number of buttons
+extern const int SS_BUTTON_COUNT;
 
 //  FUNCTIONS   ===============================================================
 
