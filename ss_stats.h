@@ -71,6 +71,14 @@ typedef struct{
 
     // the saved state pf this joystick
     SS_INPUT_STATE state;
+
+    // saved x and y locations of this joystick
+    SHORT x;
+    SHORT y;
+
+    // saved time
+    LARGE_INTEGER start_time;
+
 } ss_joystick_stats;
 
 // struct that contains stats about a trigger

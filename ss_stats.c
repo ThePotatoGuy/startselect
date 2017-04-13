@@ -40,6 +40,18 @@ static ss_statnum calculate_time_diff(
 );
 
 /*
+ * Converts the given joystick coordinate such that it is within the 
+ * valid ranges of the joystick grid
+ *
+ * IN:
+ *  @param coord - the coordinate to convert
+ *
+ * OUT:
+ *  @returns index that is within the joystick grid
+ */
+static int convert_joystick_coordinate(SHORT coord);
+
+/*
  * Deletes the given button stats struct
  *
  * IN:
@@ -141,6 +153,25 @@ static void init_trigger_right_stats(ss_trigger_stats *trigger);
  *  @param trigger - the ss_trigger_stats struct to intialize
  */
 static void init_trigger_stats(ss_trigger_stats *trigger);
+
+/*
+ * Checks if the given locations are different
+ *
+ * IN:
+ *  @param preX - the previous x to check
+ *  @param preY - the previous y to check
+ *  @param newX - the new x to check
+ *  @param newY - the new y to check
+ *
+ * OUT:
+ *  @returns true if the given locations are different, false otherwise
+ */
+static bool is_location_different(
+        SHORT preX, 
+        SHORT preY, 
+        SHORT newX, 
+        SHORT newY
+);
 
 /*
  * Process the ss_button_data input struct into the ss_button_stast struct
@@ -245,6 +276,10 @@ static ss_statnum calculate_time_diff(
     return (1000 * (end.QuadPart - start.QuadPart)) / freq.QuadPart;
 } // calcaulte_time_diff
 
+static int convert_joystick_coordinate(SHORT coord){
+    
+} // convert_joystick_coordinate
+
 static void destroy_button_stats(ss_button_stats *buttons){
     if (buttons->press_times_ms != NULL){
         free(buttons->press_times_ms);
@@ -343,7 +378,6 @@ static int init_joystick_grid(ss_joystick_grid *grid){
         }
     } // for each row of the grid
 
-    grid->state = SS_INPUT_INACTIVE;
     grid->largest = 0;
     grid->size = JOYSTICK_GRIDSIZE;
 
@@ -361,6 +395,9 @@ static int init_joystick_right_stats(ss_joystick_stats *joystick){
 } // init_joystick_right_stats
 
 static int init_joystick_stats(ss_joystick_stats *joystick){
+    joystick->x = 0;
+    joystick->y = 0;
+    joystick->state = SS_INPUT_INACTIVE;
     return init_joystick_grid(&(joystick->data));
 } // init_joystick_stats
 
@@ -379,6 +416,15 @@ static void init_trigger_stats(ss_trigger_stats *trigger){
     trigger->press_count = 0;
     trigger->state = SS_INPUT_INACTIVE;
 } // init_trigger_stats
+
+static bool is_location_different(
+        SHORT preX, 
+        SHORT preY, 
+        SHORT newX, 
+        SHORT newY
+){
+    return (preX != newX) || (preY != newY);
+} // is_location_different
 
 static void process_button_stats(
         ss_button_stats *stats, 
@@ -429,22 +475,53 @@ static void process_button_stats(
     }
 } // process_button_stats
 
-/*
- * Processes the ss_joystick_data input struct into the ss_joystick_stats 
- * struct
- *
- * IN:
- *  @param input - the ss_joystick_data struct to process
- *
- * OUT:
- *  @param stats - the ss_joystick_stast struct to save data to
- */
 static void process_joystick_stats(
         ss_joystick_stats *stats,
         ss_joystick_data *input
 ){
-    if (input->state != stats->state){
-        // current joystick state is different than previuos saved state
+    switch (stats->state){
+        case SS_INPUT_INACTIVE:
+        {
+            // the current input is inactive, check for activity and do stuff
+            // accordingly
+            switch (input->state){
+                case SS_INPUT_ACTIVE:
+                {
+                    // activity occured, time to save the state of this 
+                    // joystick
+                    stats->state = SS_INPUT_ACTIVE;
+                    stats->x = input->x;
+                    stats->y = input->y;
+
+                    // timer
+                    QueryPerformanceCounter(&(stats->start_time));
+
+                    break;
+                }
+                case SS_INPUT_INACTIVE:
+                default:
+                {
+                    // nothing 
+                    break;
+                }
+            }
+
+            break;
+        } // stats->state == SS_INPUT_INACTIVE
+        case SS_INPUT_ACTIVE:
+        {
+            // the current input is active, so its time to check for 
+            // location change as well as inactivity
+
+            if (is_location_different(stats->x, stats->y, input->x, input->y)){
+                // input location is different than previous
+            }
+        }
+    }
+    // current joystick state is different than previuos saved state
+        //
+        // okay so the way this will work is we will save previous location
+        // and if the current location is different than the previous location
 
         switch
     }
