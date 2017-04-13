@@ -32,10 +32,13 @@ typedef struct{
     ss_statnum *press_counts;
     
     // array of the states of a button
-    SS_BUTTON_STATE *states;
+    SS_INPUT_STATE *states;
 
     // array of button pressed start times
     LARGE_INTEGER *start_times;
+
+    // largest time value of these buttons
+    ss_statnum largest;
 
     // size of the above arrays
     int size;
@@ -50,6 +53,9 @@ typedef struct{
     // 2Ds square array of the grid
     ss_statnum **grid;
 
+    // largest time value in this grid
+    ss_statnum largest;
+
     // size of the square array
     int size;
 } ss_joystick_grid;
@@ -63,6 +69,8 @@ typedef struct{
     // the stats about the joystick
     ss_joystick_grid data;
 
+    // the saved state pf this joystick
+    SS_INPUT_STATE state;
 } ss_joystick_stats;
 
 // struct that contains stats about a trigger
@@ -77,8 +85,8 @@ typedef struct{
     // the amoun tof presses this trigger has (same def as button)
     ss_statnum press_count;
 
-    // the current state of this trigger (pressed or released)
-    SS_BUTTON_STATE state;
+    // the saved state pof this trigger
+    SS_INPUT_STATE state;
 
     // trigger pressed start time
     LARGE_INTEGER start_time;
@@ -98,6 +106,9 @@ typedef struct{
     // stats about the triggers of this controller
     ss_trigger_stats trigger_left;
     ss_trigger_stats trigger_right;
+
+    // largest time value
+    ss_statnum largest;
 } ss_generic_controller_stats;
 
 //  FUNCTIONS   ===============================================================
@@ -120,5 +131,27 @@ void ss_destroy_generic_controller_stats(ss_generic_controller_stats *stats);
  *  @returns SS_REUTRN_SUCCESS if successful, SS_REUTRN_ERROR if not
  */
 int ss_init_generic_controller_stats(ss_generic_controller_stats *stats);
+
+/*
+ * Prints the given ss_generic_controller_stats struct nicely
+ *
+ * IN:
+ *  @param stats - the ss_generic_controller_stats struct to print
+ */
+void ss_print_stats(ss_generic_controller_stats *stats);
+
+/*
+ * Processes the stats from the input into the given stats struct
+ *
+ * IN:
+ *  @param input - the ss_generic_controller struct to process
+ *
+ * OUT:
+ *  @param stats - the ss_generic_controller_stats struct to write data to
+ */
+void ss_process_stats(
+        ss_generic_controller_stats *stats,
+        ss_generic_controller *input
+);
 
 #endif

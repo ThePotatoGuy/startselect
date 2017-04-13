@@ -21,6 +21,25 @@
 //  STATIC FUNCTIONS    =======================================================
 
 /*
+ * Calculates the time difference (in milliseconds) between the ending and 
+ * start time, (assuming QueryPerformnanceCounter and 
+ * QueryPerformanceFrequency calls are being used)
+ *
+ * IN:
+ *  @param start - the start time
+ *  @param end -  the end imte
+ *  @param freq - time frequency according to QueryPerformanceFrequency
+ *
+ * OUT:
+ *  @return the time difference in milliseconds between end and start
+ */
+static ss_statnum calculate_time_diff(
+        LARGE_INTEGER start,
+        LARGE_INTEGER end,
+        LARGE_INTEGER freq
+);
+
+/*
  * Deletes the given button stats struct
  *
  * IN:
@@ -123,6 +142,59 @@ static void init_trigger_right_stats(ss_trigger_stats *trigger);
  */
 static void init_trigger_stats(ss_trigger_stats *trigger);
 
+/*
+ * Process the ss_button_data input struct into the ss_button_stast struct
+ *
+ * IN:
+ *  @param input - the ss_button_data struct to process
+ *
+ * OUT:
+ *  @param stast - the ss_button_stats struct to save data to
+ */
+static void process_button_stats(
+        ss_button_stats *stats, 
+        ss_button_data *input
+);
+
+/*
+ * Processes the ss_joystick_data input struct into the ss_joystick_stats 
+ * struct
+ *
+ * IN:
+ *  @param input - the ss_joystick_data struct to process
+ *
+ * OUT:
+ *  @param stats - the ss_joystick_stast struct to save data to
+ */
+static void process_joystick_stats(
+        ss_joystick_stats *stats,
+        ss_joystick_data *joystick
+);
+
+/*
+ * Processes the ss_trigger_data input struct into the ss_trigger_stats struct
+ *
+ * IN:
+ *  @param input - the ss_trigger_data struct to process
+ *
+ * OUT:
+ *  @param stats - the ss_trigger_stats struct to save data to
+ */
+static void process_trigger_stats(
+        ss_trigger_stats *stats,
+        ss_trigger_data *trigger
+);
+
+/*
+ * Sets the largest to the candidate if the candidate is larger than largest
+ *
+ * IN:
+ *  @param candidate - the time value to check if largest
+ *
+ * OUT:
+ *  @param largest - the largest value to check against 
+ */
+static void set_largest_if_largest(ss_statnum *largest, ss_statnum candidate);
 
 //  IMPLEMENTATION  ===========================================================
 
@@ -146,10 +218,32 @@ int ss_init_generic_controller_stats(ss_generic_controller_stats *stats){
     init_trigger_left_stats(&(stats->trigger_left));
     init_trigger_right_stats(&(stats->trigger_right));
 
+    largest = 0;
+
     return SS_RETURN_SUCCESS;
 } // ss_init_generic_controller_stats
 
+void ss_print_stats(ss_generic_controller_stats *stats){
+    // TODO
+} // ss_print_stats 
+
+void ss_process_stats(
+        ss_generic_controller_stats *stats,
+        ss_generic_controller *input
+){
+
+} // ss_process_stats
+
 //  STATIC IMPLEMENTATION   ===================================================
+
+static ss_statnum calculate_time_diff(
+        LARGE_INTEGER start,
+        LARGE_INTEGER end,
+        LARGE_INTEGER freq
+){
+
+    return (1000 * (end.QuadPart - start.QuadPart)) / freq.QuadPart;
+} // calcaulte_time_diff
 
 static void destroy_button_stats(ss_button_stats *buttons){
     if (buttons->press_times_ms != NULL){
@@ -193,7 +287,7 @@ static void destroy_joystick_stats(ss_joystick_stats *stats){
 static int init_button_stats(ss_button_stats *buttons){
     buttons->press_times_ms = malloc(SS_BUTTON_COUNT*sizeof(ss_statnum));
     buttons->press_counts = malloc(SS_BUTTON_COUNT*sizeof(ss_statnum));
-    buttons->states = malloc(SS_BUTTON_COUNT*sizeof(SS_BUTTON_STATE));
+    buttons->states = malloc(SS_BUTTON_COUNT*sizeof(SS_INPUT_STATE));
     buttons->start_times = malloc(SS_BUTTON_COUNT*sizeof(LARGE_INTEGER));
    
     if (buttons->press_times_ms == NULL
@@ -203,13 +297,14 @@ static int init_button_stats(ss_button_stats *buttons){
         return SS_RETURN_ERROR;
     }
 
-    buttons->size = SS_BUTTON_COUNT;
-
     for (int index = 0; index < SS_BUTTON_COUNT; index++){
         buttons->press_times_ms[index] = 0;
         buttons->press_counts[index] = 0;
-        buttons->states[index] = SS_BUTTON_RELEASED;
+        buttons->states[index] = SS_INPUT_INACTIVE;
     }
+
+    buttons->largest = 0;
+    buttons->size = SS_BUTTON_COUNT;
 
     return SS_RETURN_SUCCESS;
 } // init_button_stats
@@ -248,6 +343,8 @@ static int init_joystick_grid(ss_joystick_grid *grid){
         }
     } // for each row of the grid
 
+    grid->state = SS_INPUT_INACTIVE;
+    grid->largest = 0;
     grid->size = JOYSTICK_GRIDSIZE;
 
     return SS_RETURN_SUCCESS;
@@ -280,6 +377,125 @@ static void init_trigger_right_stats(ss_trigger_stats *trigger){
 static void init_trigger_stats(ss_trigger_stats *trigger){
     trigger->press_time = 0;
     trigger->press_count = 0;
-    trigger->state = SS_BUTTON_RELEASED;
+    trigger->state = SS_INPUT_INACTIVE;
 } // init_trigger_stats
 
+static void process_button_stats(
+        ss_button_stats *stats, 
+        ss_button_data *input
+){
+    for (int index = 0; index < input->size; index++){
+        if (input->pressed[index] != stats->states[index]){
+            // current button is different than previous saved state
+
+            switch (stats->states[index]){
+                case SS_INPUT_INACTIVE:
+                {
+                    // the button was prreviuos released, which means we just
+                    // detected a press
+                    stats->states[index] = SS_INPUT_ACTIVE;
+
+                    // timer
+                    QueryPerformanceCounter(&(stats->start_times[index])); 
+
+                    break;
+                }
+                case SS_INPUT_ACTIVE:
+                {
+                    // the button was previously pressed, whcih means we just
+                    // detected a release
+                    stats->states[index] = SS_INPUT_INACTIVE;
+
+                    // add value to press count
+                    stats->press_counts[index] += 1;
+
+                    // calculate time diff and add to press time
+                    stats->press_times_ms[index] += calculate_time_diff(
+                            stats->start_times[index], input->poll,
+                            input->freq);
+
+                    // check if largest and set to largest (for drawing later)
+                    set_largest_if_largest(&(stats->largest), 
+                            stats->press_times_ms[index]);
+                    break;
+                }
+                default:
+                {
+                    // noting happens i guess
+                    break;
+                }
+            }
+        }
+    }
+} // process_button_stats
+
+/*
+ * Processes the ss_joystick_data input struct into the ss_joystick_stats 
+ * struct
+ *
+ * IN:
+ *  @param input - the ss_joystick_data struct to process
+ *
+ * OUT:
+ *  @param stats - the ss_joystick_stast struct to save data to
+ */
+static void process_joystick_stats(
+        ss_joystick_stats *stats,
+        ss_joystick_data *input
+){
+    if (input->state != stats->state){
+        // current joystick state is different than previuos saved state
+
+        switch
+    }
+} // process_joystick_stats
+
+static void process_trigger_stats(
+        ss_trigger_stats *stats,
+        ss_trigger_data *input
+){
+    if (input->state != stats->state){
+        // current trigger state is different than previous saved state
+        
+        switch (stats->state){
+            case SS_INPUT_INACTIVE:
+            {
+                // the trigger was previously released, which means we just 
+                // detected a press
+                stats->state = SS_INPUT_ACTIVE;
+
+                // timer
+                QueryPerformanceCounter(&(stats->start_time));
+
+                break;
+            }
+            case SS_INPUT_INACTIVE:
+            {
+                // the trigger was previously pressed, which means we just
+                // detected a release
+                stats->state = SS_INPUT_ACTIVE;
+
+                // add value to press count
+                stats->press_count += 1;
+
+                // calculate time diff and add to press time
+                stats->press_time += calculate_time_diff(
+                        stats->start_time, input->poll, input->freq);
+
+                break;
+            }
+            default:
+            {
+                // nothing happens i guess
+                break;
+            }
+        }
+    }
+} // process_trigger_stats
+
+static void set_largest_if_largest(ss_statnum *largest, ss_statnum candidate){
+
+    if (candidate > *largest){
+        *largest = candidate;
+    }
+} // set_largest_if_largest

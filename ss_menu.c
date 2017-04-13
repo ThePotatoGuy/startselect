@@ -87,13 +87,13 @@ void* ss_event_handling(void *thread_data){
                 // differences occureed
                 ss_process_input(&controller, &(state.Gamepad));
                 ss_print_generic_controller(&controller);
-                QueryPerformanceCounter(&pfend);
-                testtime = (1000 * (pfend.QuadPart - pfcount.QuadPart)) / 
-                    pfreq.QuadPart;
-                if(testtime > 50){
-                    printf("diff %f\n",(float)testtime);
-                }
-                pfcount = pfend;
+      //          QueryPerformanceCounter(&pfend);
+    //            testtime = (1000 * (pfend.QuadPart - pfcount.QuadPart)) / 
+//                    pfreq.QuadPart;
+//                if(testtime > 50){
+//                    printf("diff %f\n",(float)testtime);
+//                }
+//                pfcount = pfend;
 
 //                printf("change here\n");
 

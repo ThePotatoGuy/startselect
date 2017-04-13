@@ -22,11 +22,11 @@ typedef enum {
     SS_GAMECONTROLLER_RIGHT
 } SS_AXIS;
 
-// state of a button
+// state of input
 typedef enum {
-    SS_BUTTON_RELEASED = 0,
-    SS_BUTTON_PRESSED = 1
-} SS_BUTTON_STATE;
+    SS_INPUT_INACTIVE = 0,
+    SS_INPUT_ACTIVE = 1,
+} SS_INPUT_STATE;
 
 // struct that contains data about pressed buttons
 typedef struct{
@@ -45,6 +45,9 @@ typedef struct{
     // type of joystick this data represents
     SS_AXIS type;
 
+    // the state of this joystick (active or inactive)
+    SS_INPUT_STATE state;
+    
     // x and y locations of this joystick
     SHORT x;
     SHORT y;
@@ -60,6 +63,9 @@ typedef struct{
     // type of trigger this data represents
     SS_AXIS type;
 
+    // the state of this trigger
+    SS_INPUT_STATE state;
+
     // value of the trigger
     int value;
 
@@ -73,6 +79,9 @@ typedef struct{
 
     // the time this generic controller was processed for input
     LARGE_INTEGER poll;
+
+    // frequency of the time (for timing)
+    LARGE_INTEGER freq;
 
     // data about the buttons of this controller
     ss_button_data buttons;

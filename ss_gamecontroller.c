@@ -310,6 +310,8 @@ int ss_init_generic_controller(ss_generic_controller *controller){
     init_trigger_left(&(controller->trigger_left));
     init_trigger_right(&(controller->trigger_right));
 
+    QueryPerformanceCounter(&(controller->freq));
+
     return SS_RETURN_SUCCESS;
 } // ss_init_generic_controller
 
@@ -389,6 +391,7 @@ static int init_button_data(ss_button_data *buttons){
 } // init_button_data
 
 static void init_joystick(ss_joystick_data *joystick){
+    joystick->state = SS_INPUT_INACTIVE;
     joystick->x = 0;
     joystick->y = 0;
     joystick->norm_x = 0;
@@ -406,6 +409,7 @@ static void init_joystick_right(ss_joystick_data *joystick){
 } // init_joystick_right
 
 static void init_trigger(ss_trigger_data *trigger){
+    trigger->state = SS_INPUT_INACTIVE;
     trigger->value = 0;
     trigger->magnitude = 0;
     trigger->norm_magnitude = 0;
@@ -526,10 +530,13 @@ static void process_joystick_input(
         // joystick is considered out of deadzone (player is using stick)
         joystick->norm_x = x / magnitude;
         joystick->norm_y = y / magnitude;
+        
+        joystick->state = SS_INPUT_ACTIVE;
 
     }else{
 
         // joystick is in deadzone
+        joystick->state = SS_INPUT_INACTIVE;
         joystick->x = 0;
         joystick->y = 0;
         joystick->norm_x = 0;
@@ -571,6 +578,8 @@ static void process_trigger_input(
     // past deadzone
     if (magnitude > XINPUT_GAMEPAD_TRIGGER_THRESHOLD){
 
+        trigger->state = SS_INPUT_ACTIVE;
+
         // limit to max
         if (magnitude > SS_TRIGGER_MAX){
             magnitude = SS_TRIGGER_MAX;
@@ -582,6 +591,7 @@ static void process_trigger_input(
         trigger->norm_magnitude = magnitude / (SS_TRIGGER_MAX - 
                 XINPUT_GAMEPAD_TRIGGER_THRESHOLD);
     }else{
+        trigger->state = SS_INPUT_INACTIVE;
         trigger->value = 0;
         trigger->magnitude = 0;
         trigger->norm_magnitude = 0;
