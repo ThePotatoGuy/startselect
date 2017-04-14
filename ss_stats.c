@@ -20,6 +20,8 @@
 //  CONSTANTS   ===============================================================
 
 // how large to make the square grid for joystick
+// MUST BE AN EVEN VALUE
+// UNDEFINED FOR ODD
 #define JOYSTICK_GRIDSIZE 100
 
 // head strings
@@ -38,6 +40,10 @@ static const char TRIGGER_STAT_STR[]    = "Trigger: %-20s : %8"PRIu64" presses \
 // largest strings
 static const char LARGEST_TIME_STR[]    = "Largest time: %s : %"PRIu64"\n";
 static const char LARGEST_PRESS_STR[]   = "Largest press: %s : %"PRIu64"\n";
+
+// error message
+static const char ERROR_GRIDSIZE[]      = "The gridsize is not even. Your \
+program may be corrupted\n";
 
 //  STATIC FUNCTIONS    =======================================================
 
@@ -63,14 +69,16 @@ static ss_statnum calculate_time_diff(
 /*
  * Converts the given joystick coordinate such that it is within the 
  * valid ranges of the joystick grid
+ * Assumes coord is within valid joystick range
  *
  * IN:
+ *  @param grid - the ss_joystick_grid struct
  *  @param coord - the coordinate to convert
  *
  * OUT:
  *  @returns index that is within the joystick grid
  */
-static int convert_joystick_coordinate(SHORT coord);
+static int convert_joystick_coordinate(ss_joystick_grid *grid, SHORT coord);
 
 /*
  * Deletes the given button stats struct
@@ -187,12 +195,7 @@ static void init_trigger_stats(ss_trigger_stats *trigger);
  * OUT:
  *  @returns true if the given locations are different, false otherwise
  */
-static bool is_location_different(
-        SHORT preX, 
-        SHORT preY, 
-        SHORT newX, 
-        SHORT newY
-);
+static bool is_location_different(int preX, int preY, int newX, int newY);
 
 /*
  * Prints the ss_button_stats struct nicely
@@ -300,6 +303,18 @@ void ss_destroy_generic_controller_stats(ss_generic_controller_stats *stats){
     destroy_joystick_stats(&(stats->joystick_right));
 } // ss_destroy_generic_controller_stats
 
+int ss_indexof_most_pressed_button(ss_button_stats *stats){
+    int large_dex = 0;
+
+    for (int index = 1; index < stats->size; index++){
+        if (stats->press_counts[index] > stats->press_counts[large_dex]){
+            large_dex = index;
+        }
+    }
+
+    return large_dex;
+} // ss_indexof_most_pressed_button
+
 int ss_init_generic_controller_stats(ss_generic_controller_stats *stats){
     
     if(init_button_stats(&(stats->buttons)) == SS_RETURN_ERROR
@@ -319,17 +334,14 @@ int ss_init_generic_controller_stats(ss_generic_controller_stats *stats){
     return SS_RETURN_SUCCESS;
 } // ss_init_generic_controller_stats
 
-int ss_indexof_most_pressed_button(ss_button_stats *stats){
-    int large_dex = 0;
-
-    for (int index = 1; index < stats->size; index++){
-        if (stats->press_counts[index] > stats->press_counts[large_dex]){
-            large_dex = index;
-        }
+int ss_init_stats(){
+    if (JOYSTICK_GRIDSIZE % 2 != 0){
+        printf(ERROR_GRIDSIZE);
+        return SS_RETURN_ERROR; // joystick gridsize must be even
     }
 
-    return large_dex;
-} // ss_indexof_most_pressed_button
+    return SS_RETURN_SUCCESS;
+}
 
 int ss_indexof_most_timed_button(ss_button_stats *stats){
     int large_dex = 0;
@@ -388,9 +400,8 @@ static ss_statnum calculate_time_diff(
     return ((double)(1000 * (end.QuadPart - start.QuadPart))) / freq.QuadPart;
 } // calcaulte_time_diff
 
-static int convert_joystick_coordinate(SHORT coord){
-    // TODO
-    return 0;
+static int convert_joystick_coordinate(ss_joystick_grid *grid, SHORT coord){
+    return (int) ( (coord / grid->spacing) + (size / 2.0) );
 } // convert_joystick_coordinate
 
 static void destroy_button_stats(ss_button_stats *buttons){
@@ -493,6 +504,8 @@ static int init_joystick_grid(ss_joystick_grid *grid){
 
     grid->largest = 0;
     grid->size = JOYSTICK_GRIDSIZE;
+    grid->spacing = (SS_JOYSTICK_MAX - SS_JOYSTICK_MIN) / 
+        (double) JOYSTICK_GRIDSIZE;
 
     return SS_RETURN_SUCCESS;
 } // init_joystick_grid
@@ -530,12 +543,7 @@ static void init_trigger_stats(ss_trigger_stats *trigger){
     trigger->state = SS_INPUT_INACTIVE;
 } // init_trigger_stats
 
-static bool is_location_different(
-        SHORT preX, 
-        SHORT preY, 
-        SHORT newX, 
-        SHORT newY
-){
+static bool is_location_different(int preX, int preY, int newX, int newY){
     return (preX != newX) || (preY != newY);
 } // is_location_different
 
@@ -632,6 +640,8 @@ static void process_joystick_stats(
         LARGE_INTEGER poll,
         LARGE_INTEGER freq
 ){
+    int newX, newY;
+
     switch (stats->state){
         case SS_INPUT_INACTIVE:
         {
@@ -643,8 +653,10 @@ static void process_joystick_stats(
                     // activity occured, time to save the state of this 
                     // joystick
                     stats->state = SS_INPUT_ACTIVE;
-                    stats->x = input->x;
-                    stats->y = input->y;
+                    stats->data->x = 
+                        convert_joystick_coordinate(&(stats->data), input->x);
+                    stats->data->y = 
+                        convert_joystick_coordinate(&(stats->data), input->y);
 
                     // timer
                     QueryPerformanceCounter(&(stats->start_time));
@@ -665,12 +677,49 @@ static void process_joystick_stats(
         {
             // the current input is active, so its time to check for 
             // location change as well as inactivity
-            // TODO
+            
+            // first calculate the new indexes
+            newX = convert_joystick_coordinate(&(stats->data), input->x);
+            newY = convert_joystick_coordinate(&(stats->data), input->y);
 
-            if (is_location_different(stats->x, stats->y, input->x, input->y)){
+            if (is_location_different(stats->data->x, stats->data->y, newX, 
+                        newY)){
                 // input location is different than previous
-                // TODO
+
+                // add the time difference to previous location
+                stats->data->grid[stats->data->x][stats->data->y] +=
+                    calculate_time_diff(stats->start_time, poll, freq);
+
+                switch (input->state){
+                    case SS_INPUT_ACTIVE:
+                    {
+                        // input is currently active, so prepare for next
+                        // input
+
+                        // save new location
+                        stats->data->x = newX;
+                        stats->data->y = newY;
+
+                        // timer
+                        QueryPerformanceCounter(&(stats->start_time));
+
+                        break;
+                    }
+                    case SS_INPUT_INACTIVE:
+                    {
+                        // input is currently inactive, so change the saved
+                        // state
+                        stats->state = SS_INPUT_INACTIVE;
+                        break;
+                    }
+                    default:
+                    {
+                        // nothing happens here
+                        break;
+                    }
+                }
             }
+
             break;
         }
         default:

@@ -56,6 +56,13 @@ typedef struct{
     // largest time value in this grid
     ss_statnum largest;
 
+    // spacing value of the grid (for coord conversion)
+    double spacing;
+
+    // saved x and y locations of this joystick (converted to grid indexes)
+    int x;
+    int y;
+
     // size of the square array
     int size;
 } ss_joystick_grid;
@@ -71,10 +78,6 @@ typedef struct{
 
     // the saved state pf this joystick
     SS_INPUT_STATE state;
-
-    // saved x and y locations of this joystick
-    SHORT x;
-    SHORT y;
 
     // saved time
     LARGE_INTEGER start_time;
@@ -162,6 +165,14 @@ int ss_indexof_most_timed_button(ss_button_stats *stats);
  *  @returns SS_REUTRN_SUCCESS if successful, SS_REUTRN_ERROR if not
  */
 int ss_init_generic_controller_stats(ss_generic_controller_stats *stats);
+
+/*
+ * Initializes internal stats data
+ *
+ * OUT:
+ *  @returns SS_RETURN_SUCCESS if successful, SS_RETURN_ERROr if not
+ */
+int ss_init_stats();
 
 /*
  * Prints the given ss_generic_controller_stats struct nicely
