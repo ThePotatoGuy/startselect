@@ -98,7 +98,6 @@ typedef struct{
 
     // trigger pressed start time
     LARGE_INTEGER start_time;
-
 } ss_trigger_stats;
 
 // struct that contains stats about a generic controller
@@ -129,12 +128,29 @@ typedef struct{
  */
 void ss_destroy_generic_controller_stats(ss_generic_controller_stats *stats);
 
-ss_joystick_stats* ss_get_most_pressed_joystick(
-        ss_generic_controller_stats *stats
-);
-
-
+/*
+ * Retrieves the index of the most pressed button
+ * (The button with the most presses)
+ *
+ * IN:
+ *  @param stats - the ss_button_stats struct to check 
+ *
+ * OUT:
+ *  @returns the index of the most pressed button
+ */
 int ss_indexof_most_pressed_button(ss_button_stats *stats);
+
+/*
+ * Retrieves the index of the most timed button
+ * (The button with the most press tmie)
+ *
+ * IN:
+ *  @param stats - the ss_button_stats struct to check
+ *
+ * OUT:
+ *  @returns the index of the most timed button
+ */
+int ss_indexof_most_timed_button(ss_button_stats *stats);
 
 /*
  * Initializes the generic controller stats struct

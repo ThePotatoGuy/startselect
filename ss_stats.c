@@ -20,8 +20,8 @@
 
 // head strings
 static const char HEAD_BUTTON_STR[]     = "\nBUTTON STATS:\n";
-static const char HEAD_JOYSTICK_STR[]   = "\nJOYSTICK %s STATS:\n";
-static const char HEAD_TRIGGER_STR[]    = "\nTRIGGER %s STATS:\n";
+static const char HEAD_JOYSTICK_STR[]   = "\nJOYSTICK STATS:\n";
+static const char HEAD_TRIGGER_STR[]    = "\nTRIGGER STATS:\n";
 
 // stat strings
 static const char BUTTON_STAT_STR[]     = "Button: %s : %"PRIu64" presses \
@@ -303,8 +303,40 @@ int ss_init_generic_controller_stats(ss_generic_controller_stats *stats){
     return SS_RETURN_SUCCESS;
 } // ss_init_generic_controller_stats
 
+int ss_indexof_most_pressed_button(ss_button_stats *stats){
+    int large_dex = 0;
+
+    for (index = 1; index < stats->size; index++){
+        if (stats->press_counts[index] > stats->press_counts[large_dex]){
+            large_dex = index;
+        }
+    }
+
+    return large_dex;
+} // ss_indexof_most_pressed_button
+
+int ss_indexof_most_timed_button(ss_button_stats *stats){
+    int large_dex = 0;
+
+    for (index = 1; index < stats->size; index++){
+        if (stats->press_times_ms[index] > stats->press_times_ms[large_dex]){
+            large_dex = index;
+        }
+    }
+
+    return large_dex;
+} // ss_indexof_most_timed_button
+
 void ss_print_stats(ss_generic_controller_stats *stats){
-    // TODO
+    print_button_stats(stats->buttons);
+
+    printf(HEAD_JOYSTICK_STR);
+    print_joystick_stats(stats->joystick_left);
+    print_joystick_stats(stats->joystick_right);
+
+    printf(HEAD_TRIGGER_STR);
+    print_trigger_stats(stats->trigger_left);
+    print_trigger_stats(stats->trigger_right);
 } // ss_print_stats 
 
 void ss_process_stats(
@@ -483,33 +515,33 @@ static void print_button_stats(ss_button_stats *stats){
         printf(BUTTON_STAT_STR, ss_get_button_str(index), 
                 stats->press_counts[index], stats->press_times_ms[index]);
     }
-
-
+    
+    printf(LARGEST_PRESS_STR, 
+            stats->press_counts[ss_indexof_most_pressed_button(stats)]);
+    printf(LARGEST_TIME_STR,
+            stats->press_times_ms[
+            ss_indexof_most_timed_button(stats)]);
 } // print_button_stats
 
 static void print_joystick_grid(ss_joystick_grid *grid){
     for (int row = 0; row < JOYSTICK_GRIDSIZE; row++){
         for (int col = 0; col < JOYSTICK_GRIDSIZE; col++){
-            printf(JOYSTICK_GRID_STR, grid->
+            printf(JOYSTICK_GRID_STR, grid->grid[row][col]);
         }
     }
+
+    printf(LARGEST_TIME_STR, grid->largest);
 } // print_joystick_grid
 
-/*
- * Prints the ss_joystick stats struct nicely
- *
- * IN:
- *  @param stats - the ss_joystick_stats struct to print
- */
-static void print_joystick_stats(ss_joystick_stats *stats);
+static void print_joystick_stats(ss_joystick_stats *stats){
+    printf(JOYSTICK_STAT_STR, ss_get_direction_str(stats->type));
+    print_joystick_grid(stats->data);
+} // print_joystick_states
 
-/*
- * Prints the ss_trigger_stats struct nicely
- *
- * IN:
- *  @param stast - the ss_trigger_stast struct to print
- */
-static void print_trigger_stats(ss_trigger_stats *stats);
+static void print_trigger_stats(ss_trigger_stats *stats){
+    printf(TRIGGER_STAT_STR, ss_get_direction_str(stats->type),
+            stats->press_count, stats->press_time);
+} // print_trigger_stats
 
 static void process_button_stats(
         ss_button_stats *stats, 

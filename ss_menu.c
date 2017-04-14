@@ -89,7 +89,8 @@ void* ss_event_handling(void *thread_data){
             if(state.dwPacketNumber != packet_num){
                 // differences occureed
                 ss_process_input(&controller, &(state.Gamepad));
-                ss_print_generic_controller(&controller);
+                ss_process_stats(&stats, &controller);
+//                ss_print_generic_controller(&controller);
       //          QueryPerformanceCounter(&pfend);
     //            testtime = (1000 * (pfend.QuadPart - pfcount.QuadPart)) / 
 //                    pfreq.QuadPart;
@@ -109,6 +110,8 @@ void* ss_event_handling(void *thread_data){
 
         quit = ph_get(data->end_mutex, data->end);
     }
+
+    ss_print_stats(&stats);
 
     ss_destroy_generic_controller_stats(&stats);
     ss_destroy_generic_controller(&controller);
