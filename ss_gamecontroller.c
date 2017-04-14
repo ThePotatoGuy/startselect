@@ -122,17 +122,6 @@ static const char POLL_FMT_STR[]        = "Poll time: %"PRIi64"\n";
 static void destroy_button_data(ss_button_data *buttons);
 
 /*
- * Returns teh appropriate direction string for the given type
- *
- * IN:
- *  @param type - the SS_AXIS enum to get direction string for
- *
- * OUT:
- *  @returns the appropriate direction string 
- */
-static const char* get_direction_str(SS_AXIS type);
-
-/*
  * Initializes the given button data struct
  *
  * IN:
@@ -292,6 +281,31 @@ void ss_destroy_generic_controller(ss_generic_controller *controller){
     destroy_button_data(&(controller->buttons));
 } // ss_destroy_generic_controller
 
+const char* ss_get_button_str(int button_index){
+    if (0 <= button_index && button_index < SS_BUTTON_INDEX){
+        return BUTTON_STRS[button_index];
+    }
+
+    return BUTTON_INVALID;
+} // ss_get_button_str
+
+const char* ss_get_direction_str(SS_AXIS type){
+    switch (type){
+        case SS_GAMECONTROLLER_LEFT:
+        {
+            return AXIS_LEFT;
+        }
+        case SS_GAMECONTROLLER_RIGHT:
+        {
+            return AXIS_RIGHT;
+        }
+        default:
+        {
+            return AXIS_UNKNOWN;
+        }
+    }
+} // ss_get_direction_str
+
 int ss_init_gamecontroller(){
 
     setup_button_strs();
@@ -353,23 +367,6 @@ static void destroy_button_data(ss_button_data *buttons){
 
     buttons->size = 0;
 } // destroy_button_data
-
-static const char* get_direction_str(SS_AXIS type){
-    switch (type){
-        case SS_GAMECONTROLLER_LEFT:
-        {
-            return AXIS_LEFT;
-        }
-        case SS_GAMECONTROLLER_RIGHT:
-        {
-            return AXIS_RIGHT;
-        }
-        default:
-        {
-            return AXIS_UNKNOWN;
-        }
-    }
-} // get_direction_str
 
 static int init_button_data(ss_button_data *buttons){
     buttons->pressed = malloc(BUTTON_COUNT*sizeof(int));
@@ -445,7 +442,7 @@ static void print_button_data(ss_button_data *buttons){
 static void print_joystick_data(ss_joystick_data *joystick){
     if (is_joystick_active(joystick)){
 
-        printf(JOYSTICK_FMT_STR, get_direction_str(joystick->type), 
+        printf(JOYSTICK_FMT_STR, ss_get_direction_str(joystick->type), 
                 joystick->x, joystick->y, joystick->norm_x, joystick->norm_y);
     }
 } // print_joystick_data
@@ -453,7 +450,7 @@ static void print_joystick_data(ss_joystick_data *joystick){
 static void print_trigger_data(ss_trigger_data *trigger){
     if (is_trigger_active(trigger)){
 
-        printf(TRIGGER_FMT_STR, get_direction_str(trigger->type),
+        printf(TRIGGER_FMT_STR, ss_get_direction_str(trigger->type),
                 trigger->value, trigger->magnitude, trigger->norm_magnitude);
     }
 } // print_trigger_data

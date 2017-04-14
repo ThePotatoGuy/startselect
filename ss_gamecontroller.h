@@ -140,6 +140,28 @@ void ss_destroy_gamecontroller();
 void ss_destroy_generic_controller(ss_generic_controller *controller);
 
 /*
+ * Retrievesa teh button string for the given button index
+ *
+ * IN:
+ *  @param button_index - the index of the button string to get
+ *
+ * OUT:
+ *  @returns the button string that you were looking for
+ */
+const char* ss_get_button_str(int button_index);
+
+/*
+ * Returns teh appropriate direction string for the given type
+ *
+ * IN:
+ *  @param type - the SS_AXIS enum to get direction string for
+ *
+ * OUT:
+ *  @returns the appropriate direction string 
+ */
+const char* ss_get_direction_str(SS_AXIS type);
+
+/*
  * Initializes the gamecontroller data
  *
  * OUT:

@@ -18,6 +18,23 @@
 // how large to make the square grid for joystick
 #define JOYSTICK_GRIDSIZE 100
 
+// head strings
+static const char HEAD_BUTTON_STR[]     = "\nBUTTON STATS:\n";
+static const char HEAD_JOYSTICK_STR[]   = "\nJOYSTICK %s STATS:\n";
+static const char HEAD_TRIGGER_STR[]    = "\nTRIGGER %s STATS:\n";
+
+// stat strings
+static const char BUTTON_STAT_STR[]     = "Button: %s : %"PRIu64" presses \
+: %"PRIu64" ms\n";
+static const char JOYSTICK_STAT_STR[]   = "Joystick: %s : ms grid:\n";
+static const char JOYSTICK_GRID_STR[]   = "%8"PRIu64;
+static const char TRIGGER_STAT_STR[]    = "Trigger: %s : %"PRIu64" presses \
+: %"PRIu64" ms\n";
+
+// largest strings
+static const char LARGEST_TIME_STR[]    = "Largest time: %s : %"PRIu64"\n";
+static const char LARGEST_PRESS_STR[]   = "Largest press: %s : %"PRIu64"\n";
+
 //  STATIC FUNCTIONS    =======================================================
 
 /*
@@ -174,6 +191,38 @@ static bool is_location_different(
 );
 
 /*
+ * Prints the ss_button_stats struct nicely
+ *
+ * IN:
+ *  @param stats - the ss_button_stats struct to print
+ */
+static void print_button_stats(ss_button_stats *stats);
+
+/*
+ * Prints the ss_joystick_grid struct nicely
+ *
+ * IN:
+ *  @param grid - the ss_joystick_grid struct to print
+ */
+static void print_joystick_grid(ss_joystick_grid *grid);
+
+/*
+ * Prints the ss_joystick stats struct nicely
+ *
+ * IN:
+ *  @param stats - the ss_joystick_stats struct to print
+ */
+static void print_joystick_stats(ss_joystick_stats *stats);
+
+/*
+ * Prints the ss_trigger_stats struct nicely
+ *
+ * IN:
+ *  @param stast - the ss_trigger_stast struct to print
+ */
+static void print_trigger_stats(ss_trigger_stats *stats);
+
+/*
  * Process the ss_button_data input struct into the ss_button_stast struct
  *
  * IN:
@@ -277,7 +326,8 @@ static ss_statnum calculate_time_diff(
 } // calcaulte_time_diff
 
 static int convert_joystick_coordinate(SHORT coord){
-    
+    // TODO
+    return 0;
 } // convert_joystick_coordinate
 
 static void destroy_button_stats(ss_button_stats *buttons){
@@ -426,6 +476,41 @@ static bool is_location_different(
     return (preX != newX) || (preY != newY);
 } // is_location_different
 
+static void print_button_stats(ss_button_stats *stats){
+    printf(HEAD_BUTTON_STR);
+
+    for (int index = 0; index < stats->size; index++){
+        printf(BUTTON_STAT_STR, ss_get_button_str(index), 
+                stats->press_counts[index], stats->press_times_ms[index]);
+    }
+
+
+} // print_button_stats
+
+static void print_joystick_grid(ss_joystick_grid *grid){
+    for (int row = 0; row < JOYSTICK_GRIDSIZE; row++){
+        for (int col = 0; col < JOYSTICK_GRIDSIZE; col++){
+            printf(JOYSTICK_GRID_STR, grid->
+        }
+    }
+} // print_joystick_grid
+
+/*
+ * Prints the ss_joystick stats struct nicely
+ *
+ * IN:
+ *  @param stats - the ss_joystick_stats struct to print
+ */
+static void print_joystick_stats(ss_joystick_stats *stats);
+
+/*
+ * Prints the ss_trigger_stats struct nicely
+ *
+ * IN:
+ *  @param stast - the ss_trigger_stast struct to print
+ */
+static void print_trigger_stats(ss_trigger_stats *stats);
+
 static void process_button_stats(
         ss_button_stats *stats, 
         ss_button_data *input
@@ -512,10 +597,18 @@ static void process_joystick_stats(
         {
             // the current input is active, so its time to check for 
             // location change as well as inactivity
+            // TODO
 
             if (is_location_different(stats->x, stats->y, input->x, input->y)){
                 // input location is different than previous
+                // TODO
             }
+            break;
+        }
+        default:
+        {
+            // nothing
+            break;
         }
     }
     // current joystick state is different than previuos saved state
@@ -523,8 +616,7 @@ static void process_joystick_stats(
         // okay so the way this will work is we will save previous location
         // and if the current location is different than the previous location
 
-        switch
-    }
+        
 } // process_joystick_stats
 
 static void process_trigger_stats(

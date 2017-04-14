@@ -129,6 +129,13 @@ typedef struct{
  */
 void ss_destroy_generic_controller_stats(ss_generic_controller_stats *stats);
 
+ss_joystick_stats* ss_get_most_pressed_joystick(
+        ss_generic_controller_stats *stats
+);
+
+
+int ss_indexof_most_pressed_button(ss_button_stats *stats);
+
 /*
  * Initializes the generic controller stats struct
  *

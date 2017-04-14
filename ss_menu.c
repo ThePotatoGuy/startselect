@@ -55,6 +55,8 @@ void* ss_event_handling(void *thread_data){
     DWORD res;
     DWORD packet_num;
     ss_generic_controller controller;
+    ss_generic_controller_stats stats;
+
     int rc;
     LARGE_INTEGER pfcount, pfreq, pfend;
 
@@ -67,7 +69,8 @@ void* ss_event_handling(void *thread_data){
     ss_init_gamecontroller();
     
     if(ss_init_gamecontroller() == SS_RETURN_ERROR
-            || ss_init_generic_controller(&controller) == SS_RETURN_ERROR){
+            || ss_init_generic_controller(&controller) == SS_RETURN_ERROR
+            || ss_init_generic_controller_stats(&stats) == SS_RETURN_ERROR){
 
         printf("failureeeee\n");
         return NULL;
@@ -107,6 +110,7 @@ void* ss_event_handling(void *thread_data){
         quit = ph_get(data->end_mutex, data->end);
     }
 
+    ss_destroy_generic_controller_stats(&stats);
     ss_destroy_generic_controller(&controller);
     ss_destroy_gamecontroller();
 
