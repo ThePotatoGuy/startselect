@@ -28,6 +28,7 @@
 #include "ss_constants.h"
 #include "ss_gamecontroller.h"
 #include "ss_parallel_helpers.h"
+#include "ss_stats.h"
 
 #include "ss_menu.h"
 

@@ -282,7 +282,7 @@ void ss_destroy_generic_controller(ss_generic_controller *controller){
 } // ss_destroy_generic_controller
 
 const char* ss_get_button_str(int button_index){
-    if (0 <= button_index && button_index < SS_BUTTON_INDEX){
+    if (0 <= button_index && button_index < SS_BUTTON_COUNT){
         return BUTTON_STRS[button_index];
     }
 
@@ -324,7 +324,7 @@ int ss_init_generic_controller(ss_generic_controller *controller){
     init_trigger_left(&(controller->trigger_left));
     init_trigger_right(&(controller->trigger_right));
 
-    QueryPerformanceCounter(&(controller->freq));
+    QueryPerformanceFrequency(&(controller->freq));
 
     return SS_RETURN_SUCCESS;
 } // ss_init_generic_controller
@@ -460,29 +460,36 @@ static void process_button_input(
         ss_button_data *buttons
 ){
     // check which values are pressed
-    buttons->pressed[SS_BUTTON_A] = gamepad->wButtons & XINPUT_GAMEPAD_A;
-    buttons->pressed[SS_BUTTON_B] = gamepad->wButtons & XINPUT_GAMEPAD_B;
-    buttons->pressed[SS_BUTTON_X] = gamepad->wButtons & XINPUT_GAMEPAD_X;
-    buttons->pressed[SS_BUTTON_Y] = gamepad->wButtons & XINPUT_GAMEPAD_Y;
-    buttons->pressed[SS_BUTTON_BACK] = gamepad->wButtons & XINPUT_GAMEPAD_BACK;
+    buttons->pressed[SS_BUTTON_A] = 
+        (gamepad->wButtons & XINPUT_GAMEPAD_A) != 0;
+    buttons->pressed[SS_BUTTON_B] = 
+        (gamepad->wButtons & XINPUT_GAMEPAD_B) != 0;
+    buttons->pressed[SS_BUTTON_X] = 
+        (gamepad->wButtons & XINPUT_GAMEPAD_X) != 0;
+    buttons->pressed[SS_BUTTON_Y] = 
+        (gamepad->wButtons & XINPUT_GAMEPAD_Y) != 0;
+    buttons->pressed[SS_BUTTON_BACK] = 
+        (gamepad->wButtons & XINPUT_GAMEPAD_BACK) != 0;
     buttons->pressed[SS_BUTTON_START] = 
-        gamepad->wButtons & XINPUT_GAMEPAD_START;
+        (gamepad->wButtons & XINPUT_GAMEPAD_START) != 0;
     buttons->pressed[SS_BUTTON_LEFT_THUMB] = 
-        gamepad->wButtons & XINPUT_GAMEPAD_LEFT_THUMB;
+        (gamepad->wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0;
     buttons->pressed[SS_BUTTON_RIGHT_THUMB] = 
-        gamepad->wButtons & XINPUT_GAMEPAD_RIGHT_THUMB;
+        (gamepad->wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0;
     buttons->pressed[SS_BUTTON_LEFT_SHOULDER] = 
-        gamepad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
+        (gamepad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0;
     buttons->pressed[SS_BUTTON_RIGHT_SHOULDER] = 
-        gamepad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
+        (gamepad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0;
     buttons->pressed[SS_BUTTON_DPAD_UP] = 
-        gamepad->wButtons & XINPUT_GAMEPAD_DPAD_UP;
+        (gamepad->wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0;
     buttons->pressed[SS_BUTTON_DPAD_DOWN] = 
-        gamepad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
+        (gamepad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0;
     buttons->pressed[SS_BUTTON_DPAD_LEFT] = 
-        gamepad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
+        (gamepad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0;
     buttons->pressed[SS_BUTTON_DPAD_RIGHT] = 
-        gamepad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
+        (gamepad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0;
+
+//    printf("value %i\n",buttons->pressed[SS_BUTTON_A]);
 } // process_button_input
 
 static void process_joystick_input(

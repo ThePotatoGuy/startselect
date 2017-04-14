@@ -7,6 +7,10 @@
 #include <windows.h>
 
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stdio.h>
+
+#include <inttypes.h>
 
 #include "ss_constants.h"
 #include "ss_gamecontroller.h"
@@ -24,12 +28,12 @@ static const char HEAD_JOYSTICK_STR[]   = "\nJOYSTICK STATS:\n";
 static const char HEAD_TRIGGER_STR[]    = "\nTRIGGER STATS:\n";
 
 // stat strings
-static const char BUTTON_STAT_STR[]     = "Button: %s : %"PRIu64" presses \
-: %"PRIu64" ms\n";
-static const char JOYSTICK_STAT_STR[]   = "Joystick: %s : ms grid:\n";
+static const char BUTTON_STAT_STR[]     = "Button: %-20s : %8"PRIu64" presses \
+: %8"PRIu64" ms\n";
+static const char JOYSTICK_STAT_STR[]   = "Joystick: %-20s : ms grid:\n";
 static const char JOYSTICK_GRID_STR[]   = "%8"PRIu64;
-static const char TRIGGER_STAT_STR[]    = "Trigger: %s : %"PRIu64" presses \
-: %"PRIu64" ms\n";
+static const char TRIGGER_STAT_STR[]    = "Trigger: %-20s : %8"PRIu64" presses \
+: %8"PRIu64" ms\n";
 
 // largest strings
 static const char LARGEST_TIME_STR[]    = "Largest time: %s : %"PRIu64"\n";
@@ -227,13 +231,17 @@ static void print_trigger_stats(ss_trigger_stats *stats);
  *
  * IN:
  *  @param input - the ss_button_data struct to process
+ *  @param poll - the poll time of the input
+ *  @param freq - the frequency of the timer
  *
  * OUT:
  *  @param stast - the ss_button_stats struct to save data to
  */
 static void process_button_stats(
         ss_button_stats *stats, 
-        ss_button_data *input
+        ss_button_data *input,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
 );
 
 /*
@@ -242,13 +250,17 @@ static void process_button_stats(
  *
  * IN:
  *  @param input - the ss_joystick_data struct to process
+ *  @param poll - the poll time of the input
+ *  @param freq - the frequency of the timer
  *
  * OUT:
  *  @param stats - the ss_joystick_stast struct to save data to
  */
 static void process_joystick_stats(
         ss_joystick_stats *stats,
-        ss_joystick_data *joystick
+        ss_joystick_data *joystick,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
 );
 
 /*
@@ -256,13 +268,17 @@ static void process_joystick_stats(
  *
  * IN:
  *  @param input - the ss_trigger_data struct to process
+ *  @param poll - the poll time of the input
+ *  @param freq - the frequency of the timer
  *
  * OUT:
  *  @param stats - the ss_trigger_stats struct to save data to
  */
 static void process_trigger_stats(
         ss_trigger_stats *stats,
-        ss_trigger_data *trigger
+        ss_trigger_data *trigger,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
 );
 
 /*
@@ -298,7 +314,7 @@ int ss_init_generic_controller_stats(ss_generic_controller_stats *stats){
     init_trigger_left_stats(&(stats->trigger_left));
     init_trigger_right_stats(&(stats->trigger_right));
 
-    largest = 0;
+    stats->largest = 0;
 
     return SS_RETURN_SUCCESS;
 } // ss_init_generic_controller_stats
@@ -306,7 +322,7 @@ int ss_init_generic_controller_stats(ss_generic_controller_stats *stats){
 int ss_indexof_most_pressed_button(ss_button_stats *stats){
     int large_dex = 0;
 
-    for (index = 1; index < stats->size; index++){
+    for (int index = 1; index < stats->size; index++){
         if (stats->press_counts[index] > stats->press_counts[large_dex]){
             large_dex = index;
         }
@@ -318,7 +334,7 @@ int ss_indexof_most_pressed_button(ss_button_stats *stats){
 int ss_indexof_most_timed_button(ss_button_stats *stats){
     int large_dex = 0;
 
-    for (index = 1; index < stats->size; index++){
+    for (int index = 1; index < stats->size; index++){
         if (stats->press_times_ms[index] > stats->press_times_ms[large_dex]){
             large_dex = index;
         }
@@ -328,22 +344,37 @@ int ss_indexof_most_timed_button(ss_button_stats *stats){
 } // ss_indexof_most_timed_button
 
 void ss_print_stats(ss_generic_controller_stats *stats){
-    print_button_stats(stats->buttons);
+    print_button_stats(&(stats->buttons));
 
+    /*
     printf(HEAD_JOYSTICK_STR);
-    print_joystick_stats(stats->joystick_left);
-    print_joystick_stats(stats->joystick_right);
+    print_joystick_stats(&(stats->joystick_left));
+    print_joystick_stats(&(stats->joystick_right));
+    */
 
     printf(HEAD_TRIGGER_STR);
-    print_trigger_stats(stats->trigger_left);
-    print_trigger_stats(stats->trigger_right);
+    print_trigger_stats(&(stats->trigger_left));
+    print_trigger_stats(&(stats->trigger_right));
 } // ss_print_stats 
 
 void ss_process_stats(
         ss_generic_controller_stats *stats,
         ss_generic_controller *input
 ){
+    process_button_stats(&(stats->buttons), &(input->buttons), input->poll,
+            input->freq);
 
+    /*
+    process_joystick_stats(&(stats->joystick_left), &(input->joystick_left),
+            input->poll, input->freq);
+    process_joystick_stats(&(stats->joystick_right), &(input->joystick_right),
+            input->poll, input->freq);
+    */
+
+    process_trigger_stats(&(stats->trigger_left), &(input->trigger_left),
+            input->poll, input->freq);
+    process_trigger_stats(&(stats->trigger_right), &(input->trigger_right),
+            input->poll, input->freq);
 } // ss_process_stats
 
 //  STATIC IMPLEMENTATION   ===================================================
@@ -354,7 +385,7 @@ static ss_statnum calculate_time_diff(
         LARGE_INTEGER freq
 ){
 
-    return (1000 * (end.QuadPart - start.QuadPart)) / freq.QuadPart;
+    return ((double)(1000 * (end.QuadPart - start.QuadPart))) / freq.QuadPart;
 } // calcaulte_time_diff
 
 static int convert_joystick_coordinate(SHORT coord){
@@ -509,18 +540,22 @@ static bool is_location_different(
 } // is_location_different
 
 static void print_button_stats(ss_button_stats *stats){
+    int most_index;
+    
     printf(HEAD_BUTTON_STR);
 
     for (int index = 0; index < stats->size; index++){
         printf(BUTTON_STAT_STR, ss_get_button_str(index), 
                 stats->press_counts[index], stats->press_times_ms[index]);
     }
-    
-    printf(LARGEST_PRESS_STR, 
-            stats->press_counts[ss_indexof_most_pressed_button(stats)]);
-    printf(LARGEST_TIME_STR,
-            stats->press_times_ms[
-            ss_indexof_most_timed_button(stats)]);
+
+    most_index = ss_indexof_most_pressed_button(stats);
+    printf(LARGEST_PRESS_STR,ss_get_button_str(most_index),
+            stats->press_counts[most_index]);
+
+    most_index = ss_indexof_most_timed_button(stats);
+    printf(LARGEST_TIME_STR, ss_get_button_str(most_index),
+            stats->press_times_ms[most_index]);
 } // print_button_stats
 
 static void print_joystick_grid(ss_joystick_grid *grid){
@@ -529,13 +564,11 @@ static void print_joystick_grid(ss_joystick_grid *grid){
             printf(JOYSTICK_GRID_STR, grid->grid[row][col]);
         }
     }
-
-    printf(LARGEST_TIME_STR, grid->largest);
 } // print_joystick_grid
 
 static void print_joystick_stats(ss_joystick_stats *stats){
     printf(JOYSTICK_STAT_STR, ss_get_direction_str(stats->type));
-    print_joystick_grid(stats->data);
+    print_joystick_grid(&(stats->data));
 } // print_joystick_states
 
 static void print_trigger_stats(ss_trigger_stats *stats){
@@ -545,7 +578,9 @@ static void print_trigger_stats(ss_trigger_stats *stats){
 
 static void process_button_stats(
         ss_button_stats *stats, 
-        ss_button_data *input
+        ss_button_data *input,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
 ){
     for (int index = 0; index < input->size; index++){
         if (input->pressed[index] != stats->states[index]){
@@ -574,8 +609,7 @@ static void process_button_stats(
 
                     // calculate time diff and add to press time
                     stats->press_times_ms[index] += calculate_time_diff(
-                            stats->start_times[index], input->poll,
-                            input->freq);
+                            stats->start_times[index], poll, freq);
 
                     // check if largest and set to largest (for drawing later)
                     set_largest_if_largest(&(stats->largest), 
@@ -594,7 +628,9 @@ static void process_button_stats(
 
 static void process_joystick_stats(
         ss_joystick_stats *stats,
-        ss_joystick_data *input
+        ss_joystick_data *input,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
 ){
     switch (stats->state){
         case SS_INPUT_INACTIVE:
@@ -653,7 +689,9 @@ static void process_joystick_stats(
 
 static void process_trigger_stats(
         ss_trigger_stats *stats,
-        ss_trigger_data *input
+        ss_trigger_data *input,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
 ){
     if (input->state != stats->state){
         // current trigger state is different than previous saved state
@@ -670,18 +708,18 @@ static void process_trigger_stats(
 
                 break;
             }
-            case SS_INPUT_INACTIVE:
+            case SS_INPUT_ACTIVE:
             {
                 // the trigger was previously pressed, which means we just
                 // detected a release
-                stats->state = SS_INPUT_ACTIVE;
+                stats->state = SS_INPUT_INACTIVE;
 
                 // add value to press count
                 stats->press_count += 1;
 
                 // calculate time diff and add to press time
                 stats->press_time += calculate_time_diff(
-                        stats->start_time, input->poll, input->freq);
+                        stats->start_time, poll, freq);
 
                 break;
             }
