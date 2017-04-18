@@ -12,6 +12,7 @@
 
 #include <inttypes.h>
 
+#include "ss_config.h"
 #include "ss_constants.h"
 #include "ss_gamecontroller.h"
 
@@ -22,7 +23,7 @@
 // how large to make the square grid for joystick
 // MUST BE AN EVEN VALUE
 // UNDEFINED FOR ODD
-#define JOYSTICK_GRIDSIZE 100
+#define JOYSTICK_GRIDSIZE 10
 
 // head strings
 static const char HEAD_BUTTON_STR[]     = "\nBUTTON STATS:\n";
@@ -358,11 +359,11 @@ int ss_indexof_most_timed_button(ss_button_stats *stats){
 void ss_print_stats(ss_generic_controller_stats *stats){
     print_button_stats(&(stats->buttons));
 
-    /*
+    
     printf(HEAD_JOYSTICK_STR);
     print_joystick_stats(&(stats->joystick_left));
     print_joystick_stats(&(stats->joystick_right));
-    */
+    //*/
 
     printf(HEAD_TRIGGER_STR);
     print_trigger_stats(&(stats->trigger_left));
@@ -376,12 +377,12 @@ void ss_process_stats(
     process_button_stats(&(stats->buttons), &(input->buttons), input->poll,
             input->freq);
 
-    /*
+    
     process_joystick_stats(&(stats->joystick_left), &(input->joystick_left),
             input->poll, input->freq);
     process_joystick_stats(&(stats->joystick_right), &(input->joystick_right),
             input->poll, input->freq);
-    */
+    //*/
 
     process_trigger_stats(&(stats->trigger_left), &(input->trigger_left),
             input->poll, input->freq);
@@ -569,11 +570,33 @@ static void print_button_stats(ss_button_stats *stats){
 } // print_button_stats
 
 static void print_joystick_grid(ss_joystick_grid *grid){
+
+#ifdef SS_JOYGRID_FLIP_Y
+
+    for (int row = JOYSTICK_GRIDSIZE - 1; row >= 0; row--){
+
+#else // SS_JOYGRID_FLIP_Y not defined
+
     for (int row = 0; row < JOYSTICK_GRIDSIZE; row++){
+
+#endif // SS_JOYGRID_FLIP_Y not defined
+
+#ifdef SS_JOYGRID_FLIP_X
+
+        for (int col = JOYSTICK_GRIDSIZE - 1; col >= 0; col--){
+
+#else // SS_JOYGRID_FLIP_X not defined
+
         for (int col = 0; col < JOYSTICK_GRIDSIZE; col++){
+
+#endif // SS_JOYGRID_FLIP_X not defined
+
             printf(JOYSTICK_GRID_STR, grid->grid[row][col]);
         }
+        printf("\n");
     }
+    printf(LARGEST_PRESS_STR, "", grid->largest);
+    printf("\n");
 } // print_joystick_grid
 
 static void print_joystick_stats(ss_joystick_stats *stats){
@@ -688,9 +711,28 @@ static void process_joystick_stats(
                         newY)){
                 // input location is different than previous
 
+#ifdef SS_XY_SWAP
+                // SEE ss_config.h for explanation of this define
+
+                // add the time difference to previous location
+                stats->data.grid[stats->data.y][stats->data.x] +=
+                    calculate_time_diff(stats->start_time, poll, freq);
+
+                // set largest value if largest
+                set_largest_if_largest(&(stats->data.largest),
+                        stats->data.grid[stats->data.y][stats->data.x]);
+
+#else // SS_XY_SWAP not defined
+
                 // add the time difference to previous location
                 stats->data.grid[stats->data.x][stats->data.y] +=
                     calculate_time_diff(stats->start_time, poll, freq);
+
+                // set largest value if largest
+                set_largest_if_largest(&(stats->data.largest),
+                        stats->data.grid[stats->data.x][stats->data.y]);
+
+#endif // SS_XY_SWAP not defined
 
                 switch (input->state){
                     case SS_INPUT_ACTIVE:
@@ -730,12 +772,6 @@ static void process_joystick_stats(
             break;
         }
     }
-    // current joystick state is different than previuos saved state
-        //
-        // okay so the way this will work is we will save previous location
-        // and if the current location is different than the previous location
-
-        
 } // process_joystick_stats
 
 static void process_trigger_stats(
