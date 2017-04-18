@@ -401,7 +401,7 @@ static ss_statnum calculate_time_diff(
 } // calcaulte_time_diff
 
 static int convert_joystick_coordinate(ss_joystick_grid *grid, SHORT coord){
-    return (int) ( (coord / grid->spacing) + (size / 2.0) );
+    return (int) ( (coord / grid->spacing) + (grid->size / 2.0) );
 } // convert_joystick_coordinate
 
 static void destroy_button_stats(ss_button_stats *buttons){
@@ -502,6 +502,8 @@ static int init_joystick_grid(ss_joystick_grid *grid){
         }
     } // for each row of the grid
 
+    grid->x = 0;
+    grid->y = 0;
     grid->largest = 0;
     grid->size = JOYSTICK_GRIDSIZE;
     grid->spacing = (SS_JOYSTICK_MAX - SS_JOYSTICK_MIN) / 
@@ -521,8 +523,8 @@ static int init_joystick_right_stats(ss_joystick_stats *joystick){
 } // init_joystick_right_stats
 
 static int init_joystick_stats(ss_joystick_stats *joystick){
-    joystick->x = 0;
-    joystick->y = 0;
+    //joystick->x = 0;
+//    joystick->y = 0;
     joystick->state = SS_INPUT_INACTIVE;
     return init_joystick_grid(&(joystick->data));
 } // init_joystick_stats
@@ -653,9 +655,9 @@ static void process_joystick_stats(
                     // activity occured, time to save the state of this 
                     // joystick
                     stats->state = SS_INPUT_ACTIVE;
-                    stats->data->x = 
+                    stats->data.x = 
                         convert_joystick_coordinate(&(stats->data), input->x);
-                    stats->data->y = 
+                    stats->data.y = 
                         convert_joystick_coordinate(&(stats->data), input->y);
 
                     // timer
@@ -682,12 +684,12 @@ static void process_joystick_stats(
             newX = convert_joystick_coordinate(&(stats->data), input->x);
             newY = convert_joystick_coordinate(&(stats->data), input->y);
 
-            if (is_location_different(stats->data->x, stats->data->y, newX, 
+            if (is_location_different(stats->data.x, stats->data.y, newX, 
                         newY)){
                 // input location is different than previous
 
                 // add the time difference to previous location
-                stats->data->grid[stats->data->x][stats->data->y] +=
+                stats->data.grid[stats->data.x][stats->data.y] +=
                     calculate_time_diff(stats->start_time, poll, freq);
 
                 switch (input->state){
@@ -697,8 +699,8 @@ static void process_joystick_stats(
                         // input
 
                         // save new location
-                        stats->data->x = newX;
-                        stats->data->y = newY;
+                        stats->data.x = newX;
+                        stats->data.y = newY;
 
                         // timer
                         QueryPerformanceCounter(&(stats->start_time));

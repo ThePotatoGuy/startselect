@@ -168,7 +168,7 @@ int ss_menu_run(){
     SDL_GameController *controller = NULL;
 
     int test = 1;
-    for (int i = 0; test && i < SDL_NumJoysticks(); i++){
+    for (int i = 0; i < SDL_NumJoysticks(); i++){
         if (SDL_IsGameController(i)){
             controller = SDL_GameControllerOpen(i);
             if (controller){
