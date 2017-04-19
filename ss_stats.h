@@ -29,7 +29,8 @@ typedef enum{
     SS_SLICE_WEST = 4,
     SS_SLICE_SOUTHWEST = 5,
     SS_SLICE_SOUTH = 6,
-    SS_SLICE_SOUTHEAST = 7
+    SS_SLICE_SOUTHEAST = 7,
+    SS_SLICE_NONE = -1
 } SS_JOYSTICK_SLICE;
 
 // struct that contains stats about buttons
@@ -68,13 +69,16 @@ typedef struct{
     // largest time value in this pizza
     ss_statnum largest;
 
-    // spacing value of the slices
+    // offset value to adjust degree
+    double offset;
+
+    // spacing value of the slices (in degrees)
     double spacing;
 
-    // saved x and y locations of this joystick (converted to grid indexes)
-    SS_
+    // saved previous slice
+    SS_JOYSTICK_SLICE prev;
 
-    // size of the square array
+    // number of slices
     int size;
 } ss_joystick_grid;
 
@@ -131,6 +135,11 @@ typedef struct{
     // largest time value
     ss_statnum largest;
 } ss_generic_controller_stats;
+
+//  CONSTANTS   ===============================================================
+
+// the number of joystick slices 
+extern const int SS_JOYSTICK_SLICE_COUNT;
 
 //  FUNCTIONS   ===============================================================
 

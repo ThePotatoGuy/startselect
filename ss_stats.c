@@ -14,6 +14,7 @@
 #include <stdio.h>
 
 #include <inttypes.h>
+#include <math.h>
 
 #include "ss_config.h"
 #include "ss_constants.h"
@@ -23,10 +24,17 @@
 
 //  CONSTANTS   ===============================================================
 
-// how large to make the square grid for joystick
-// MUST BE AN EVEN VALUE
-// UNDEFINED FOR ODD
-#define JOYSTICK_GRIDSIZE 10
+// PI for atan calculation
+#define PI 3.14159265
+
+// how many slices we have for the joystick
+#define SLICE_COUNT 8
+
+// number of degrees in circle
+#define CIRCLE_DEG 360
+
+// number of joystick slices
+const int SS_JOYSTICK_SLICE_COUNT       = SLICE_COUNT;
 
 // head strings
 static const char HEAD_BUTTON_STR[]     = "\nBUTTON STATS:\n";
@@ -37,7 +45,7 @@ static const char HEAD_TRIGGER_STR[]    = "\nTRIGGER STATS:\n";
 static const char BUTTON_STAT_STR[]     = "Button: %-20s : %8"PRIu64" presses \
 : %8"PRIu64" ms\n";
 static const char JOYSTICK_STAT_STR[]   = "Joystick: %-20s : ms grid:\n";
-static const char JOYSTICK_GRID_STR[]   = "%8"PRIu64;
+static const char JOYSTICK_SLICE_STR[]  = " %8"PRIu64;
 static const char TRIGGER_STAT_STR[]    = "Trigger: %-20s : %8"PRIu64" presses \
 : %8"PRIu64" ms\n";
 
@@ -48,6 +56,9 @@ static const char LARGEST_PRESS_STR[]   = "Largest press: %s : %"PRIu64"\n";
 // error message
 static const char ERROR_GRIDSIZE[]      = "The gridsize is not even. Your \
 program may be corrupted\n";
+
+// joystick access pattern (generated at startup)
+static SS_JOYSTICK_SLICE JOYSTICK_ACCESSPATTERN[SLICE_COUNT];
 
 //  STATIC FUNCTIONS    =======================================================
 
@@ -71,18 +82,51 @@ static ss_statnum calculate_time_diff(
 );
 
 /*
- * Converts the given joystick coordinate such that it is within the 
- * valid ranges of the joystick grid
- * Assumes coord is within valid joystick range
+ * Collapses the given degree into an appropriate pizza slice of the given
+ * grid.
+ *
+ * IN:
+ *  @param grid - ss_joystick_grid struct that contains the pizza to collapse
+ *      to
+ *  @param degree - the degree to collapse
+ *
+ * OUT:
+ *  @returns the slice that the degree belongs in
+ */
+static SS_JOYSTICK_SLICE collapse_degree_to_slice(
+        ss_joystick_grid *grid, 
+        double degree
+);
+
+/*
+ * Converts the given joystick coordinates to an appropriate slice index
  *
  * IN:
  *  @param grid - the ss_joystick_grid struct
- *  @param coord - the coordinate to convert
+ *  @param x - the x coord
+ *  @param y - the y coord
  *
  * OUT:
- *  @returns index that is within the joystick grid
+ *  @returns the slice that the coordinates belong in
  */
-static int convert_joystick_coordinate(ss_joystick_grid *grid, SHORT coord);
+static SS_JOYSTICK_SLICE convert_joystick_coordinate_to_slice(
+        ss_joystick_grid *grid, 
+        SHORT x,
+        SHORT y
+);
+
+/*
+ * Converts the given x and y coordinates into a degree. The returned degree
+ * is in the correpsonding quadrant
+ *
+ * IN:
+ *  @param x - x coordinate
+ *  @param y - y coordinate
+ *
+ * OUT:
+ *  @returns degree of the x and y coordinate
+ */
+static double convert_xy_to_degree(SHORT x, SHORT y);
 
 /*
  * Deletes the given button stats struct
@@ -188,20 +232,6 @@ static void init_trigger_right_stats(ss_trigger_stats *trigger);
 static void init_trigger_stats(ss_trigger_stats *trigger);
 
 /*
- * Checks if the given locations are different
- *
- * IN:
- *  @param preX - the previous x to check
- *  @param preY - the previous y to check
- *  @param newX - the new x to check
- *  @param newY - the new y to check
- *
- * OUT:
- *  @returns true if the given locations are different, false otherwise
- */
-static bool is_location_different(int preX, int preY, int newX, int newY);
-
-/*
  * Prints the ss_button_stats struct nicely
  *
  * IN:
@@ -299,6 +329,11 @@ static void process_trigger_stats(
  */
 static void set_largest_if_largest(ss_statnum *largest, ss_statnum candidate);
 
+/*
+ * Sets up the Joystick accesspattern array 
+ */
+static void setup_joystick_accesspattern();
+
 //  IMPLEMENTATION  ===========================================================
 
 void ss_destroy_generic_controller_stats(ss_generic_controller_stats *stats){
@@ -339,10 +374,8 @@ int ss_init_generic_controller_stats(ss_generic_controller_stats *stats){
 } // ss_init_generic_controller_stats
 
 int ss_init_stats(){
-    if (JOYSTICK_GRIDSIZE % 2 != 0){
-        printf(ERROR_GRIDSIZE);
-        return SS_RETURN_ERROR; // joystick gridsize must be even
-    }
+
+    setup_joystick_accesspattern();
 
     return SS_RETURN_SUCCESS;
 }
@@ -404,9 +437,25 @@ static ss_statnum calculate_time_diff(
     return ((double)(1000 * (end.QuadPart - start.QuadPart))) / freq.QuadPart;
 } // calcaulte_time_diff
 
-static int convert_joystick_coordinate(ss_joystick_grid *grid, SHORT coord){
-    return (int) ( (coord / grid->spacing) + (grid->size / 2.0) );
-} // convert_joystick_coordinate
+static SS_JOYSTICK_SLICE collapse_degree_to_slice(
+        ss_joystick_grid *grid, 
+        double degree
+){
+    return ((int) ((CIRCLE_DEG + degree + grid->offset) / grid->spacing)) % grid->size;
+} // collapse_degree_to_slice
+
+static SS_JOYSTICK_SLICE convert_joystick_coordinate_to_slice(
+        ss_joystick_grid *grid, 
+        SHORT x,
+        SHORT y
+){
+    return collapse_degree_to_slice(grid, convert_xy_to_degree(x,y));
+} // convert_joystick_coordinate_to_slice
+
+
+static double convert_xy_to_degree(SHORT x, SHORT y){
+    return atan2(y,x) * 180 / PI;
+} // convert_xy_to_degree
 
 static void destroy_button_stats(ss_button_stats *buttons){
     if (buttons->press_times_ms != NULL){
@@ -431,16 +480,11 @@ static void destroy_button_stats(ss_button_stats *buttons){
 } // destroy_button_stats
 
 static void destroy_joystick_grid(ss_joystick_grid *grid){
-    if (grid->grid != NULL){
-        for (int row = 0; row < grid->size; row++){
-            if (grid->grid[row] != NULL){
-                free(grid->grid[row]);
-            }
-        }
-        free(grid->grid);
-        grid->grid = NULL;
-        grid->size = 0;
+    if (grid->pizza != NULL){
+        free(grid->pizza);
     }
+    grid->pizza = NULL;
+    grid->size = 0;
 } // destroy_joystick_grid
 
 static void destroy_joystick_stats(ss_joystick_stats *stats){
@@ -473,45 +517,22 @@ static int init_button_stats(ss_button_stats *buttons){
 } // init_button_stats
 
 static int init_joystick_grid(ss_joystick_grid *grid){
-    int row; // control used to back out gracefully
 
-    grid->grid = malloc(JOYSTICK_GRIDSIZE*sizeof(ss_statnum*));
+    grid->pizza = malloc(SS_JOYSTICK_SLICE_COUNT*sizeof(ss_statnum));
 
-    if (grid->grid == NULL){
+    if (grid->pizza == NULL){
         return SS_RETURN_ERROR;
     }
 
-    for (row = 0; row < JOYSTICK_GRIDSIZE; row++){
-        grid->grid[row] = malloc(JOYSTICK_GRIDSIZE*sizeof(ss_statnum));
+    for (int index = 0; index < SS_JOYSTICK_SLICE_COUNT; index++){
+        grid->pizza[index] = 0;
+    }
 
-        if (grid->grid[row] == NULL){
-            // error occured while making this 2D array
-            
-            // this loop does graceful backout by freeing what we have already
-            // made
-            while (row > 0){
-                free(grid->grid[--row]);
-            }
-
-            free(grid->grid);
-            grid->grid = NULL;
-            
-            return SS_RETURN_ERROR;
-        }
-
-        // otherwise we can fill out the grid with 0s
-
-        for (int col = 0; col < JOYSTICK_GRIDSIZE; col++){
-            grid->grid[row][col] = 0;
-        }
-    } // for each row of the grid
-
-    grid->x = 0;
-    grid->y = 0;
+    grid->prev = -1;
     grid->largest = 0;
-    grid->size = JOYSTICK_GRIDSIZE;
-    grid->spacing = (SS_JOYSTICK_MAX - SS_JOYSTICK_MIN) / 
-        (double) JOYSTICK_GRIDSIZE;
+    grid->size = SS_JOYSTICK_SLICE_COUNT;
+    grid->spacing = CIRCLE_DEG / (double)SS_JOYSTICK_SLICE_COUNT;
+    grid->offset = grid->spacing / 2.0;
 
     return SS_RETURN_SUCCESS;
 } // init_joystick_grid
@@ -549,10 +570,6 @@ static void init_trigger_stats(ss_trigger_stats *trigger){
     trigger->state = SS_INPUT_INACTIVE;
 } // init_trigger_stats
 
-static bool is_location_different(int preX, int preY, int newX, int newY){
-    return (preX != newX) || (preY != newY);
-} // is_location_different
-
 static void print_button_stats(ss_button_stats *stats){
     int most_index;
     
@@ -573,32 +590,38 @@ static void print_button_stats(ss_button_stats *stats){
 } // print_button_stats
 
 static void print_joystick_grid(ss_joystick_grid *grid){
+    // special 0 (to make compiler shutup
+    unsigned long long appeasement = 0;
 
-#ifdef SS_JOYGRID_FLIP_Y
+    // condition
+    bool has_printed_center = false;
 
-    for (int row = JOYSTICK_GRIDSIZE - 1; row >= 0; row--){
+    for (int index = 0; index < SS_JOYSTICK_SLICE_COUNT; index++){
 
-#else // SS_JOYGRID_FLIP_Y not defined
+        if (!has_printed_center && index == 4){
+            // subtract index and print out a 0
+            index -= 1;
+            has_printed_center = true;
+            printf(JOYSTICK_SLICE_STR, appeasement);
 
-    for (int row = 0; row < JOYSTICK_GRIDSIZE; row++){
-
-#endif // SS_JOYGRID_FLIP_Y not defined
-
-#ifdef SS_JOYGRID_FLIP_X
-
-        for (int col = JOYSTICK_GRIDSIZE - 1; col >= 0; col--){
-
-#else // SS_JOYGRID_FLIP_X not defined
-
-        for (int col = 0; col < JOYSTICK_GRIDSIZE; col++){
-
-#endif // SS_JOYGRID_FLIP_X not defined
-
-            printf(JOYSTICK_GRID_STR, grid->grid[row][col]);
+        }else{
+            printf(JOYSTICK_SLICE_STR, 
+                    grid->pizza[JOYSTICK_ACCESSPATTERN[index]]);
         }
-        printf("\n");
+
+        if (has_printed_center){
+            if ((index+2) % 3 == 0){
+                printf("\n");
+            }
+        }else{
+            if ((index+1) % 3 == 0){
+                // prints appropriate newline when appropriate
+                printf("\n");
+            }
+        }
     }
-    printf(LARGEST_PRESS_STR, "", grid->largest);
+
+    printf(LARGEST_TIME_STR, "", grid->largest);
     printf("\n");
 } // print_joystick_grid
 
@@ -668,7 +691,7 @@ static void process_joystick_stats(
         LARGE_INTEGER poll,
         LARGE_INTEGER freq
 ){
-    int newX, newY;
+    int new_slice;
 
     switch (stats->state){
         case SS_INPUT_INACTIVE:
@@ -681,10 +704,8 @@ static void process_joystick_stats(
                     // activity occured, time to save the state of this 
                     // joystick
                     stats->state = SS_INPUT_ACTIVE;
-                    stats->data.x = 
-                        convert_joystick_coordinate(&(stats->data), input->x);
-                    stats->data.y = 
-                        convert_joystick_coordinate(&(stats->data), input->y);
+                    stats->data.prev = convert_joystick_coordinate_to_slice(
+                            &(stats->data), input->x, input->y);
 
                     // timer
                     QueryPerformanceCounter(&(stats->start_time));
@@ -706,36 +727,19 @@ static void process_joystick_stats(
             // the current input is active, so its time to check for 
             // location change as well as inactivity
             
-            // first calculate the new indexes
-            newX = convert_joystick_coordinate(&(stats->data), input->x);
-            newY = convert_joystick_coordinate(&(stats->data), input->y);
+            // first calculate the new slice
+            new_slice = convert_joystick_coordinate_to_slice(&(stats->data),
+                    input->x, input->y);
 
-            if (is_location_different(stats->data.x, stats->data.y, newX, 
-                        newY)){
+            if (stats->data.prev != new_slice){
                 // input location is different than previous
 
-#ifdef SS_XY_SWAP
-                // SEE ss_config.h for explanation of this define
-
-                // add the time difference to previous location
-                stats->data.grid[stats->data.y][stats->data.x] +=
+                stats->data.pizza[stats->data.prev] +=
                     calculate_time_diff(stats->start_time, poll, freq);
 
                 // set largest value if largest
                 set_largest_if_largest(&(stats->data.largest),
-                        stats->data.grid[stats->data.y][stats->data.x]);
-
-#else // SS_XY_SWAP not defined
-
-                // add the time difference to previous location
-                stats->data.grid[stats->data.x][stats->data.y] +=
-                    calculate_time_diff(stats->start_time, poll, freq);
-
-                // set largest value if largest
-                set_largest_if_largest(&(stats->data.largest),
-                        stats->data.grid[stats->data.x][stats->data.y]);
-
-#endif // SS_XY_SWAP not defined
+                        stats->data.pizza[stats->data.prev]);
 
                 switch (input->state){
                     case SS_INPUT_ACTIVE:
@@ -744,8 +748,7 @@ static void process_joystick_stats(
                         // input
 
                         // save new location
-                        stats->data.x = newX;
-                        stats->data.y = newY;
+                        stats->data.prev = new_slice;
 
                         // timer
                         QueryPerformanceCounter(&(stats->start_time));
@@ -828,3 +831,53 @@ static void set_largest_if_largest(ss_statnum *largest, ss_statnum candidate){
         *largest = candidate;
     }
 } // set_largest_if_largest
+
+static void setup_joystick_accesspattern(){
+
+#ifdef SS_JOYGRID_FLIP
+
+    JOYSTICK_ACCESSPATTERN[0]   = SS_SLICE_SOUTHEAST;
+    JOYSTICK_ACCESSPATTERN[1]   = SS_SLICE_SOUTH;
+    JOYSTICK_ACCESSPATTERN[2]   = SS_SLICE_SOUTHWEST;
+    JOYSTICK_ACCESSPATTERN[3]   = SS_SLICE_EAST;
+    JOYSTICK_ACCESSPATTERN[4]   = SS_SLICE_WEST;
+    JOYSTICK_ACCESSPATTERN[5]   = SS_SLICE_NORTHEAST;
+    JOYSTICK_ACCESSPATTERN[6]   = SS_SLICE_NORTH;
+    JOYSTICK_ACCESSPATTERN[7]   = SS_SLICE_NORTHWEST;
+
+#elif defined SS_JOYGRID_FLIP_Y
+
+    JOYSTICK_ACCESSPATTERN[0]   = SS_SLICE_SOUTHWEST;
+    JOYSTICK_ACCESSPATTERN[1]   = SS_SLICE_SOUTH;
+    JOYSTICK_ACCESSPATTERN[2]   = SS_SLICE_SOUTHEAST;
+    JOYSTICK_ACCESSPATTERN[3]   = SS_SLICE_WEST;
+    JOYSTICK_ACCESSPATTERN[4]   = SS_SLICE_EAST;
+    JOYSTICK_ACCESSPATTERN[5]   = SS_SLICE_NORTHWEST;
+    JOYSTICK_ACCESSPATTERN[6]   = SS_SLICE_NORTH;
+    JOYSTICK_ACCESSPATTERN[7]   = SS_SLICE_NORTHEAST;
+
+#elif defined SS_JOYGRID_FLIP_X
+
+    JOYSTICK_ACCESSPATTERN[0]   = SS_SLICE_NORTHEAST;
+    JOYSTICK_ACCESSPATTERN[1]   = SS_SLICE_NORTH;
+    JOYSTICK_ACCESSPATTERN[2]   = SS_SLICE_NORTHWEST;
+    JOYSTICK_ACCESSPATTERN[3]   = SS_SLICE_EAST;
+    JOYSTICK_ACCESSPATTERN[4]   = SS_SLICE_WEST;
+    JOYSTICK_ACCESSPATTERN[5]   = SS_SLICE_SOUTHEAST;
+    JOYSTICK_ACCESSPATTERN[6]   = SS_SLICE_SOUTH;
+    JOYSTICK_ACCESSPATTERN[7]   = SS_SLICE_SOUTHWEST;
+
+#else // !defined( SS_JOYGRID_FLIP | SS_JOYGRID_FLIP_Y | SS_JOYGRID_FLIP_X |
+
+    JOYSTICK_ACCESSPATTERN[0]   = SS_SLICE_NORTHWEST;
+    JOYSTICK_ACCESSPATTERN[1]   = SS_SLICE_NORTH;
+    JOYSTICK_ACCESSPATTERN[2]   = SS_SLICE_NORTHEAST;
+    JOYSTICK_ACCESSPATTERN[3]   = SS_SLICE_WEST;
+    JOYSTICK_ACCESSPATTERN[4]   = SS_SLICE_EAST;
+    JOYSTICK_ACCESSPATTERN[5]   = SS_SLICE_SOUTHWEST;
+    JOYSTICK_ACCESSPATTERN[6]   = SS_SLICE_SOUTH;
+    JOYSTICK_ACCESSPATTERN[7]   = SS_SLICE_SOUTHEAST;
+
+#endif // !defined( SS_JOYGRID_FLIP | SS_JOYGRID_FLIP_Y | SS_JOYGRID_FLIP_X |
+
+} // setup_joystick_accesspattern

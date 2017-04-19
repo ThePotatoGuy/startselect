@@ -25,7 +25,7 @@
 #ifndef SS_JOYGRID_FLIP
 // flips printing/accessing of the joystick grid so the grid is accessed in
 // reverse row order
-#define SS_JOYGRID_FLIP_Y
+//#define SS_JOYGRID_FLIP_Y
 
 #else // SS_JOYGRID_FLIP defined
 #define SS_JOYGRID_FLIP_Y

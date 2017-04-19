@@ -68,6 +68,7 @@ void* ss_event_handling(void *thread_data){
 
     int controller_id = 0; // assuming the first controller for now
     ss_init_gamecontroller();
+    ss_init_stats();
     
     if(ss_init_gamecontroller() == SS_RETURN_ERROR
             || ss_init_generic_controller(&controller) == SS_RETURN_ERROR

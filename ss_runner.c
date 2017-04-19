@@ -21,6 +21,8 @@
 #include "ss_menu.h"
 #include "ss_gamecontroller.h"
 
+//#include <math.h> // testing
+
 // internet told me to do this
 #ifdef ___cplusplus
 extern ="C"
@@ -217,6 +219,15 @@ int main(int argc, char *argv[]){
         }
     }
 */
+/*
+    printf("%f\n", atan2(100, 100)* 180 / 3.14159);
+
+    printf("%f\n", atan2(0, 20)* 180 / 3.14159);
+    printf("%f\n", atan2(-100, 20)* 180 / 3.14159);
+    printf("%f\n", atan2(-100, -10)* 180 / 3.14159);
+    printf("%f\n", atan2(100, -20)* 180 / 3.14159);
+    printf("%f\n", atan2(300, -300)* 180 / 3.14159);
+    */
 
     ss_menu_run();
     printf("ending\n");
