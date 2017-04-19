@@ -20,6 +20,18 @@
 // the large number type we are using for all timing stats
 typedef unsigned long long ss_statnum;
 
+// slices indexes
+typedef enum{
+    SS_SLICE_EAST = 0,
+    SS_SLICE_NORTHEAST = 1,
+    SS_SLICE_NORTH = 2,
+    SS_SLICE_NORTHWEST = 3,
+    SS_SLICE_WEST = 4,
+    SS_SLICE_SOUTHWEST = 5,
+    SS_SLICE_SOUTH = 6,
+    SS_SLICE_SOUTHEAST = 7
+} SS_JOYSTICK_SLICE;
+
 // struct that contains stats about buttons
 // indexes correspond to the ones defined in ss_gamecontroller.h
 typedef struct{
@@ -45,23 +57,22 @@ typedef struct{
 } ss_button_stats;
 
 // special struct that contains the represntation of joystick data in a grid
-// > divide a joystick's motion area into a square grid of size x (adjustable)
-// > a joystick's x and y is translated into a box onto this grid, and the 
-//  value in that box is incremented appropriately
+// > divide a joystick's motion area into 8 pizza slices (non adjustable)
+// > a joystick's x and y is translated into a slice, and its value in that box
+// > is incremented appropriately
 typedef struct{
 
-    // 2Ds square array of the grid
-    ss_statnum **grid;
+    // array of the slices, starting from east going counter clockwise
+    ss_statnum *pizza;
 
-    // largest time value in this grid
+    // largest time value in this pizza
     ss_statnum largest;
 
-    // spacing value of the grid (for coord conversion)
+    // spacing value of the slices
     double spacing;
 
     // saved x and y locations of this joystick (converted to grid indexes)
-    int x;
-    int y;
+    SS_
 
     // size of the square array
     int size;

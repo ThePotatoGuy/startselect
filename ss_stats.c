@@ -2,6 +2,9 @@
  * Implementation of stats functions
  * @author Andre Allan Ponce
  * @email andreponce@null.net
+ * TODO: change grid structure format to size 8 array of pizza slices
+ * (use atan2 to convert from coordinates to degrees)
+ * Check the python script i wrote for the math
  */
 
 #include <windows.h>
