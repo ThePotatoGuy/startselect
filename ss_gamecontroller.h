@@ -5,7 +5,7 @@
  *
  * Contains functions related to game controller input
  * This includes functions for printing values input.
- * TODO: include functions for handling data
+ * TODO: move ps3 related stuff to ps3 file
  */
 
 #ifndef SS_GAMECONTROLLER_H
@@ -112,6 +112,16 @@ extern const int SS_BUTTON_DPAD_UP;
 extern const int SS_BUTTON_DPAD_DOWN;
 extern const int SS_BUTTON_DPAD_LEFT;
 extern const int SS_BUTTON_DPAD_RIGHT;
+
+// trigger and joystick indexes
+// this is mainly for canvas usage 
+// TODO move this (and the other indexes) to seperate files that handle
+// controller constants (like one for ps3, one for xbone, one for steam, and
+// so on
+extern const int SS_TRIGGER_LEFT;
+extern const int SS_TRIGGER_RIGHT;
+extern const int SS_JOYSTICK_LEFT;
+extern const int SS_JOYSTICK_RIGHT;
 
 // joystick values
 extern const int SS_JOYSTICK_MAX;

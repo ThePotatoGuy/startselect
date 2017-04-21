@@ -63,6 +63,12 @@ const int SS_BUTTON_DPAD_DOWN       = 11;
 const int SS_BUTTON_DPAD_LEFT       = 12;
 const int SS_BUTTON_DPAD_RIGHT      = 13;
 
+// trigger and joystick indexes 
+const int SS_TRIGGER_LEFT           = 14;
+const int SS_TRIGGER_RIGHT          = 15;
+const int SS_JOYSTICK_LEFT          = 16;
+const int SS_JOYSTICK_RIGHT         = 17;
+
 // joystick values
 const int SS_JOYSTICK_MAX           = 32767;
 const int SS_JOYSTICK_MIN           = -32768;

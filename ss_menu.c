@@ -19,15 +19,22 @@
 
 #include <pthread.h>
 
-#include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+#include <stdio.h>
+
 #include <time.h> // testing time
 
 #include "SDL2/SDL.h"
 
+#include "SDL2/SDL2_gfxPrimitives.h"
+
+#include "ss_canvas.h"
 #include "ss_constants.h"
 #include "ss_gamecontroller.h"
 #include "ss_parallel_helpers.h"
+#include "ss_ps3_constants.h"
+#include "ss_shape.h"
 #include "ss_stats.h"
 
 #include "ss_menu.h"
@@ -149,15 +156,20 @@ int ss_menu_run(){
     //return 0;
     
     SDL_Window *window;
+    SDL_Renderer *renderer;
+    SDL_Texture *bitmapTex = NULL;
+    SDL_Surface *bitmapSurface = NULL;
+    SDL_Rect outtex;
     int quit;
 
     quit = 0;
 
     SDL_Init(0);
-    SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER); // init video so we can display a window
+    SDL_InitSubSystem(SDL_INIT_VIDEO); // init video so we can display a window
 
-    window = SDL_CreateWindow("Quit",100,100,100,100,0);
-   
+    window = SDL_CreateWindow("Quit",100,100,800,800,0);
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+  
     if (window == NULL){
         // window failed to create
 
@@ -165,6 +177,58 @@ int ss_menu_run(){
         quit = 1;
     }
 
+    bitmapSurface = SDL_LoadBMP("images/controllerdiag_temp.bmp");
+    bitmapTex = SDL_CreateTextureFromSurface(renderer, bitmapSurface);
+    outtex.x = 0;
+    outtex.y = 0;
+    outtex.w = bitmapSurface->w;
+    outtex.h = bitmapSurface->h;
+    SDL_FreeSurface(bitmapSurface);
+    SDL_RenderCopy(renderer, bitmapTex, NULL, &outtex);
+
+    ss_canvas_color tcolor;
+    tcolor.r = 13;
+    tcolor.g = 59;
+    tcolor.b = 95;
+    tcolor.a = 255;
+
+    ss_circle X;
+    X.x = SS_PS3_A_X;
+    X.y = SS_PS3_A_Y;
+    X.r = SS_PS3_CB_R;
+
+    ss_circle Triag;
+    Triag.x = SS_PS3_Y_X;
+    Triag.y = SS_PS3_Y_Y;
+    Triag.r = 25;
+
+    ss_circle square;
+    square.x = 562;
+    square.y = 433;
+    square.r = 25;
+
+    ss_circle circ;
+    circ.x = 692;
+    circ.y = 433;
+    circ.r = 25;
+
+    ss_canvas_drawcircle(renderer, 0, 0, &X, &tcolor, true);
+    ss_canvas_drawcircle(renderer, 0, 0, &Triag, &tcolor, true);
+    ss_canvas_drawcircle(renderer, 0, 0, &square, &tcolor, true);
+    ss_canvas_drawcircle(renderer, 0, 0, &circ, &tcolor, true);
+
+//    filledCircleRGBA(renderer, 627, 492, 25, 13, 59, 95, 255);
+//    aacircleRGBA(renderer, 627, 492, 25, 13, 59, 95, 255);
+
+//    circleRGBA(renderer, 500, 492, 25, 13, 59, 95, 255);
+//    pieRGBA(renderer, 200, 200, 25, -22, 22, 13, 59, 95, 255);
+//    pieRGBA(renderer, 100, 200, 25, 0, 270, 13, 59, 95, 255);
+//    filledPieRGBA(renderer, 300, 300, 100, 0, 90, 13, 59, 95, 255);
+//    filledCircleRGBA(renderer, 300, 300, 50, 255, 255, 255, 255);
+//    aacircleRGBA(renderer, 300, 300, 50, 255, 255, 255, 255);
+    SDL_RenderPresent(renderer);
+
+/*
     // first lets just grab the ps3 controller manually
     SDL_GameController *controller = NULL;
 
@@ -184,6 +248,7 @@ int ss_menu_run(){
 
 //    controller = SDL_GameControllerOpen(0);
     printf("que %i\n", SDL_GameControllerEventState(SDL_QUERY));
+    */
     SDL_Event event; // event handler
 
     // event handling loop
@@ -208,12 +273,16 @@ int ss_menu_run(){
                         }
                         default: break;
                     }
+                    break;
                 }
-                case SDL_CONTROLLERBUTTONDOWN:
-                case SDL_CONTROLLERBUTTONUP:
+                case SDL_MOUSEBUTTONDOWN:
                 {
-    //                printf("in here\n");
-  //                  ss_print_input(&event.cbutton);
+                    /*
+                     * circle button radius 25
+                     * A: (627,492)
+                     * X: (562, 434)
+                     */
+                    printf("(%i, %i)\n", event.button.x, event.button.y);
                     break;
                 }
                 default:
@@ -234,6 +303,8 @@ int ss_menu_run(){
 
     // quit
     //SDL_GameControllerClose(controller);
+    SDL_DestroyTexture(bitmapTex);
+    SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
 
