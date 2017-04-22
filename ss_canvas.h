@@ -50,8 +50,6 @@ typedef union{
  *
  * IN:
  *  @param renderer - the SDL_Renderer to draw on
- *  @param xoffset - the amount of xoffset to give to this circle
- *  @param yoffset - the amount of yoffset to give to this circle
  *  @param circle - info about the circle to draw
  *  @param color - color of the circle to draw
  *  @param add_aa - true draws the circle with AA, false does not
@@ -61,11 +59,68 @@ typedef union{
  */
 int ss_canvas_drawcircle(
         SDL_Renderer *renderer,
-        int xoffset,
-        int yoffset,
         const ss_circle *circle,
         const ss_canvas_color *color,
         bool add_aa
+);
+
+/*
+ * Draws an ellipse using the given ellipse onto the given renderer
+ *
+ * IN:
+ *  @param renderer - the SDL_Renderer to draw on
+ *  @param ellipes - dimensions of the ellipse to draw
+ *  @param color - color of the ellipse to draw
+ *  @param add_aa - true draws the ellipse with AA, false does not
+ *
+ * OUT:
+ *  @returns SS_RETURN_SUCCESS on success, SS_RETURN_FAILURE otherwise
+ */
+int ss_canvas_drawellip(
+        SDL_Renderer *renderer,
+        const ss_ellipse *ellipse,
+        const ss_canvas_color *color,
+        bool add_aa
+);
+
+/*
+ * Draws a polygon using the given coordinates onto the given renderer
+ *
+ * IN:
+ *  @param renderer - the SDL_Renderer to draw on
+ *  @param vx - array of the x coordinate of the vertices of this polygon
+ *  @param vy - array of the y coordinates of the vertices of this polygon
+ *  @param vtx_ct - number of vertices of this polygon
+ *  @param color - color of the polygon to draw
+ *  @param add_aa - true draws the poly with AA, false does not
+ *
+ * OUT:
+ *  @returns SS_RETURN_SUCCESS on success, SS_RETURN_FAILURE otherwise
+ */
+int ss_canvas_drawpoly(
+        SDL_Renderer *renderer,
+        const Sint16 *vx,
+        const Sint16 *vy,
+        unsigned int vtx_ct,
+        const ss_canvas_color *color,
+        bool add_aa
+);
+
+/*
+ * Draws a rectangle using the given SDL_Rect onto the given renderer
+ *
+ * IN:
+ *  @param renderer - the SDL_Renderer to draw on
+ *  @param rect - dimensions of the rectangle to draw
+ *  @param color - color of the rectangle to draw
+ *
+ * OUT:
+ *  @returns SS_RETURN_SUCCESS on success, SS_RETURN_FAILURE otherwise
+ */
+int ss_canvas_drawrect(
+        SDL_Renderer *renderer, 
+        const SDL_Rect *rect, 
+        const ss_canvas_color *color
 );
 
 /*

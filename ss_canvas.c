@@ -35,29 +35,90 @@ static void setup_ps3_shapes();
 
 int ss_canvas_drawcircle(
         SDL_Renderer *renderer, 
-        int xoffset,
-        int yoffset,
         const ss_circle *circle,
         const ss_canvas_color *color,
         bool add_aa
 ){
     
-    if (filledCircleRGBA(renderer, xoffset + circle->x, yoffset + circle->y, 
-                circle->r, color->r, color->g, color->b, color->a) == -1){
+    if (filledCircleRGBA(renderer, circle->x, circle->y, circle->r, color->r, 
+                color->g, color->b, color->a) == -1){
         return SS_RETURN_FAILURE;
     }
 
     if (add_aa){
         // antialisising 
         
-        if (aacircleRGBA(renderer, xoffset + circle->x, yoffset + circle->y, 
-                    circle->r, color->r, color->g, color->b, color->a) == -1){
+        if (aacircleRGBA(renderer, circle->x, circle->y, circle->r, color->r, 
+                    color->g, color->b, color->a) == -1){
             return SS_RETURN_FAILURE;
         }
     }
 
     return SS_RETURN_SUCCESS;
 } // ss_canvas_drawcircle
+
+int ss_canvas_drawellip(
+        SDL_Renderer *renderer,
+        const ss_ellipse *ellipse,
+        const ss_canvas_color *color,
+        bool add_aa
+){
+
+    if (filledEllipseRGBA(renderer, ellipse->x, ellipse->y, ellipse->rx,
+                ellipse->ry, color->r, color->g, color->b, color->a) == -1){
+        return SS_RETURN_FAILURE;
+    }
+
+    if (add_aa){
+        if (aaellipseRGBA(renderer, ellipse->x, ellipse->y, ellipse->rx,
+                    ellipse->ry, color->r, color->g, color->b, 
+                    color->a) == -1){
+            return SS_RETURN_FAILURE;
+        }
+    }
+
+    return SS_RETURN_SUCCESS;
+} // ss_canvas_drawellip
+
+int ss_canvas_drawpoly(
+        SDL_Renderer *renderer,
+        const Sint16 *vx,
+        const Sint16 *vy,
+        unsigned int vtx_ct,
+        const ss_canvas_color *color,
+        bool add_aa
+){
+
+    if (filledPolygonRGBA(renderer, vx, vy, vtx_ct, color->r, color->g,
+                color->b, color->a) == -1){
+        return SS_RETURN_FAILURE;
+    }
+
+    if (add_aa){
+        // antiaailiasing
+
+        if (aapolygonRGBA(renderer, vx, vy, vtx_ct, color->r, color->g, 
+                    color->b, color->a) == -1){
+            return SS_RETURN_FAILURE;
+        }
+    }
+
+    return SS_RETURN_SUCCESS;
+} // ss_canvas_drawpoly
+
+int ss_canvas_drawrect(
+        SDL_Renderer *renderer, 
+        const SDL_Rect *rect, 
+        const ss_canvas_color *color
+){
+    if (boxRGBA(renderer, rect->x, rect->y, rect->x + rect->w,
+                rect->y + rect->h, color->r, color->g, color->b, 
+                color->a) == -1){
+        return SS_RETURN_FAILURE;
+    }
+
+    return SS_RETURN_SUCCESS;
+} // ss_canvas_drawrect
 
 int ss_canvas_init(){
     // TODO

@@ -11,13 +11,9 @@
 
 #include "SDL2/SDL.h"
 
+#include "ss_ps3_constants.h"
+
 //  CONSTANTS   ===============================================================
-
-// size of ps3 dpad in vertexes
-#define SS_PS3_DPAD_SIZE 5
-
-// number of slices in a ps3 joystick
-#define SS_PS3_JOY_SIZE 8
 
 // size of a triangle in vertexes
 #define SS_TRI_SIZE 3
@@ -27,8 +23,8 @@
 // components of a triangle
 // (all in pixels)
 typedef struct{ 
-    unsigned int x[SS_TRI_SIZE];    // x coordinates
-    unsigned int y[SS_TRI_SIZE];    // y coordinates
+    Sint16 vx[SS_TRI_SIZE];    // x coordinates
+    Sint16 vy[SS_TRI_SIZE];    // y coordinates
 } ss_triangle;
 
 // components of an ellipse
@@ -58,8 +54,8 @@ typedef struct{
 // > bascially x and y coordinates of its vertices
 // (all in pixels)
 typedef struct{
-    unsigned int x[SS_PS3_DPAD_SIZE];    // x coordinates
-    unsigned int y[SS_PS3_DPAD_SIZE];    // y coordinates
+    Sint16 vx[SS_PS3_DPAD_SIZE];    // x coordinates
+    Sint16 vy[SS_PS3_DPAD_SIZE];    // y coordinates
 } ss_ps3_dpad;
 
 // components of a ps3 trigger

@@ -33,9 +33,11 @@
 #include "ss_constants.h"
 #include "ss_gamecontroller.h"
 #include "ss_parallel_helpers.h"
-#include "ss_ps3_constants.h"
 #include "ss_shape.h"
 #include "ss_stats.h"
+
+#include "ss_ps3_canvas.h"
+#include "ss_ps3_constants.h"
 
 #include "ss_menu.h"
 
@@ -212,11 +214,130 @@ int ss_menu_run(){
     circ.y = 433;
     circ.r = 25;
 
-    ss_canvas_drawcircle(renderer, 0, 0, &X, &tcolor, true);
-    ss_canvas_drawcircle(renderer, 0, 0, &Triag, &tcolor, true);
-    ss_canvas_drawcircle(renderer, 0, 0, &square, &tcolor, true);
-    ss_canvas_drawcircle(renderer, 0, 0, &circ, &tcolor, true);
+    ss_ps3_dpad dright;
+    dright.vx[0] = 190;
+    dright.vy[0] = 433;
+    dright.vx[1] = 208;
+    dright.vy[1] = 414;
+    dright.vx[2] = 233;
+    dright.vy[2] = 414;
+    dright.vx[3] = 233;
+    dright.vy[3] = 452;
+    dright.vx[4] = 208;
+    dright.vy[4] = 452;
 
+    ss_ps3_dpad dleft;
+    dleft.vx[0] = 160;
+    dleft.vy[0] = 433;
+    dleft.vx[1] = 142;
+    dleft.vy[1] = 452;
+    dleft.vx[2] = 117;
+    dleft.vy[2] = 452;
+    dleft.vx[3] = 117;
+    dleft.vy[3] = 414;
+    dleft.vx[4] = 142;
+    dleft.vy[4] = 414;
+
+    ss_ps3_dpad dup;
+    dup.vx[0] = 175;
+    dup.vy[0] = 418;
+    dup.vx[1] = 156;
+    dup.vy[1] = 400;
+    dup.vx[2] = 156;
+    dup.vy[2] = 375;
+    dup.vx[3] = 194;
+    dup.vy[3] = 375;
+    dup.vx[4] = 194;
+    dup.vy[4] = 400;
+
+    ss_ps3_dpad ddown;
+    ddown.vx[0] = 175;
+    ddown.vy[0] = 448;
+    ddown.vx[1] = 194;
+    ddown.vy[1] = 466;
+    ddown.vx[2] = 194;
+    ddown.vy[2] = 491;
+    ddown.vx[3] = 156;
+    ddown.vy[3] = 491;
+    ddown.vx[4] = 156;
+    ddown.vy[4] = 466;
+
+    SDL_Rect select;
+    select.x = 317;
+    select.y = 424;
+    select.w = 32;
+    select.h = 18;
+
+    ss_triangle start;
+    start.vx[0] = 489;
+    start.vy[0] = 433;
+    start.vx[1] = 453;
+    start.vy[1] = 443;
+    start.vx[2] = 453;
+    start.vy[2] = 423;
+
+    SDL_Rect lshld;
+    lshld.x = 128;
+    lshld.y = 129;
+    lshld.w = 94;
+    lshld.h = 48;
+
+    SDL_Rect rshld;
+    rshld.x = 580;
+    rshld.y = 129;
+    rshld.w = 94;
+    rshld.h = 48;
+
+    ss_ps3_trigger ltrig;
+    ltrig.body.x = 128;
+    ltrig.body.y = 31;
+    ltrig.body.w = 94;
+    ltrig.body.h = 60;
+    ltrig.tip.x = 175;
+    ltrig.tip.y = 31;
+    ltrig.tip.rx = 47;
+    ltrig.tip.ry = 16;
+
+    ss_ps3_trigger rtrig;
+    rtrig.body.x = 580;
+    rtrig.body.y = 31;
+    rtrig.body.w = 94;
+    rtrig.body.h = 60;
+    rtrig.tip.x = 627;
+    rtrig.tip.y = 31;
+    rtrig.tip.rx = 47;
+    rtrig.tip.ry = 16;
+
+    ss_circle ljoybut;
+    ljoybut.x = 516;
+    ljoybut.y = 542;
+    ljoybut.r = 77;
+
+    // joysizes x = 516
+    // y = 542
+    // r = 77
+
+    ss_canvas_drawcircle(renderer, &X, &tcolor, true);
+    ss_canvas_drawcircle(renderer, &Triag, &tcolor, true);
+    ss_canvas_drawcircle(renderer, &square, &tcolor, true);
+    ss_canvas_drawcircle(renderer, &circ, &tcolor, true);
+
+    ss_ps3_cvs_drawdpad(renderer, &dright, &tcolor, true);
+    ss_ps3_cvs_drawdpad(renderer, &ddown, &tcolor, true);
+    ss_ps3_cvs_drawdpad(renderer, &dleft, &tcolor, true);
+    ss_ps3_cvs_drawdpad(renderer, &dup, &tcolor, true);
+
+    ss_canvas_drawrect(renderer, &select, &tcolor);
+    ss_canvas_drawpoly(renderer, start.vx, start.vy, SS_TRI_SIZE, &tcolor,
+            true);
+
+    ss_canvas_drawrect(renderer, &lshld, &tcolor);
+    ss_canvas_drawrect(renderer, &rshld, &tcolor);
+
+    ss_ps3_cvs_drawtrig(renderer, &ltrig, &tcolor, true);
+    ss_ps3_cvs_drawtrig(renderer, &rtrig, &tcolor, true);
+
+    ss_canvas_drawcircle(renderer, &ljoybut, &tcolor, true);
 //    filledCircleRGBA(renderer, 627, 492, 25, 13, 59, 95, 255);
 //    aacircleRGBA(renderer, 627, 492, 25, 13, 59, 95, 255);
 
