@@ -37,7 +37,7 @@ extern const unsigned int SS_PS3_B_Y;   // y coordinate
 
 // button Square (X)
 extern const unsigned int SS_PS3_X_X;   // x coordinate
-extern const unsigned int SS_PS3_Y_Y;   // y coordinate
+extern const unsigned int SS_PS3_X_Y;   // y coordinate
 
 // button Triangle (Y)
 extern const unsigned int SS_PS3_Y_X;   // x coordinate
@@ -50,8 +50,12 @@ extern const unsigned int SS_PS3_BCK_W; // width
 extern const unsigned int SS_PS3_BCK_H; // height
 
 // button Start (Start)
-extern const Sint16 SS_PS3_STRT_VX[];   // x coords
-extern const Sint16 SS_PS3_STRT_VY[];   // y coords
+//extern const Sint16 SS_PS3_STRT_VX[];   // x coords
+//extern const Sint16 SS_PS3_STRT_VY[];   // y coords
+extern const unsigned int SS_PS3_STRT_X;    // x coordinate ofp oint
+extern const unsigned int SS_PS3_STRT_Y;    // y coordinate of point
+extern const int SS_PS3_STRT_VX_OFF[];      // x coordinate offsetes
+extern const int SS_PS3_STRT_VY_OFF[];      // y coordinate offsetes
 
 // button Left Shoulder
 extern const unsigned int SS_PS3_LSH_X; // x coordinate
@@ -66,20 +70,36 @@ extern const unsigned int SS_PS3_RSH_W; // width
 extern const unsigned int SS_PS3_RSH_H; // height
 
 // button DPAD UP
-extern const Sint16 SS_PS3_UDP_VX[];    // x coords
-extern const Sint16 SS_PS3_UDP_VY[];    // y coords
+//extern const Sint16 SS_PS3_UDP_VX[];    // x coords
+//extern const Sint16 SS_PS3_UDP_VY[];    // y coords
+extern const unsigned int SS_PS3_UDP_X; // x coordinate of point
+extern const unsigned int SS_PS3_UDP_Y; // y coordinate of point
+extern const int SS_PS3_UDP_VX_OFF[];   // x coordinate offsets
+extern const int SS_PS3_UDP_VY_OFF[];   // y coordinate offsets
 
 // button DPAD DOWN
-extern const Sint16 SS_PS3_DDP_VX[];    // x coords
-extern const Sint16 SS_PS3_DDP_VY[];    // y coords
+//extern const Sint16 SS_PS3_DDP_VX[];    // x coords
+//extern const Sint16 SS_PS3_DDP_VY[];    // y coords
+extern const unsigned int SS_PS3_DDP_X; // x coordinate of point
+extern const unsigned int SS_PS3_DDP_Y; // y coordinate of point
+extern const int SS_PS3_DDP_VX_OFF[];   // x coordinate offsets
+extern const int SS_PS3_DDP_VY_OFF[];   // y coordinate offsets
 
 // button DPAD LEFT
-extern const Sint16 SS_PS3_LDP_VX[];    // x coords
-extern const Sint16 SS_PS3_LDP_VY[];    // y coords
+//extern const Sint16 SS_PS3_LDP_VX[];    // x coords
+//extern const Sint16 SS_PS3_LDP_VY[];    // y coords
+extern const unsigned int SS_PS3_LDP_X; // x coordinate of point
+extern const unsigned int SS_PS3_LDP_Y; // y coordinate of point
+extern const int SS_PS3_LDP_VX_OFF[];   // x coordinaet offsets
+extern const int SS_PS3_LDP_VY_OFF[];   // y coordinate offsetes
 
 // button DPAD RIGHT
-extern const Sint16 SS_PS3_RDP_VX[];    // x coords
-extern const Sint16 SS_PS3_RDP_VY[];    // y coords
+//extern const Sint16 SS_PS3_RDP_VX[];    // x coords
+//extern const Sint16 SS_PS3_RDP_VY[];    // y coords
+extern const unsigned int SS_PS3_RDP_X; // x coordinate of point
+extern const unsigned int SS_PS3_RDP_Y; // y coordinate of point
+extern const int SS_PS3_RDP_VX_OFF[];   // x coordinate offsets
+extern const int SS_PS3_RDP_VY_OFF[];   // y coordinate offsetes
 
 // trigger LEFT
 extern const unsigned int SS_PS3_LTR_B_X;   // x coordinate of body

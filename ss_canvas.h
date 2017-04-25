@@ -124,6 +124,25 @@ int ss_canvas_drawrect(
 );
 
 /*
+ * Draws a slice using the given ss_slice onto the given renderer
+ *
+ * IN:
+ *  @param renderer - the SDL_Renderer to draw on
+ *  @param slice - dimensions of the slice to draw
+ *  @param color - color of the slice to draw
+ *  @oaran add_aa - true draws the slice with AA, false does not
+ *
+ * OUT:
+ *  @returns SS_RETURN_SUCCESS on suyccess, SS_RETURN_FAILURE otherwise
+ */
+int ss_canvas_drawslice(
+        SDL_Renderer *renderer,
+        const ss_slice *slice,
+        const ss_canvas_color *color,
+        bool add_aa
+);
+
+/*
  * Initializes the canvas
  *
  * OUT:

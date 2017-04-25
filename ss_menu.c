@@ -169,7 +169,7 @@ int ss_menu_run(){
     SDL_Init(0);
     SDL_InitSubSystem(SDL_INIT_VIDEO); // init video so we can display a window
 
-    window = SDL_CreateWindow("Quit",100,100,800,800,0);
+    window = SDL_CreateWindow("Quit",100,100,814,814,0);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
   
     if (window == NULL){
@@ -179,7 +179,8 @@ int ss_menu_run(){
         quit = 1;
     }
 
-    bitmapSurface = SDL_LoadBMP("images/controllerdiag_temp.bmp");
+    //bitmapSurface = SDL_LoadBMP("images/controllerdiag_temp.bmp");
+    bitmapSurface = SDL_LoadBMP("images/controllermap.bmp");
     bitmapTex = SDL_CreateTextureFromSurface(renderer, bitmapSurface);
     outtex.x = 0;
     outtex.y = 0;
@@ -189,10 +190,30 @@ int ss_menu_run(){
     SDL_RenderCopy(renderer, bitmapTex, NULL, &outtex);
 
     ss_canvas_color tcolor;
-    tcolor.r = 13;
-    tcolor.g = 59;
-    tcolor.b = 95;
+    tcolor.r = 33;
+    tcolor.g = 150;
+    tcolor.b = 243;
     tcolor.a = 255;
+
+    ss_canvas_color gcolor;
+    gcolor.r = 76;
+    gcolor.g = 175;
+    gcolor.b = 80;
+    gcolor.a = 255;
+
+    ss_canvas_color rcolor;
+    rcolor.r = 244;
+    rcolor.g = 67;
+    rcolor.b = 54;
+    rcolor.a = 255;
+
+    ss_canvas_color alpha;
+    alpha = tcolor;
+
+    ss_canvas_color colors[3];
+    colors[0] = tcolor;
+    colors[1] = gcolor;
+    colors[2] = rcolor;
 
     ss_circle X;
     X.x = SS_PS3_A_X;
@@ -202,91 +223,56 @@ int ss_menu_run(){
     ss_circle Triag;
     Triag.x = SS_PS3_Y_X;
     Triag.y = SS_PS3_Y_Y;
-    Triag.r = 25;
+    Triag.r = SS_PS3_CB_R;
 
     ss_circle square;
-    square.x = 562;
-    square.y = 433;
-    square.r = 25;
+    square.x = SS_PS3_X_X;
+    square.y = SS_PS3_X_Y;
+    square.r = SS_PS3_CB_R;
 
     ss_circle circ;
-    circ.x = 692;
-    circ.y = 433;
-    circ.r = 25;
+    circ.x = SS_PS3_B_X;
+    circ.y = SS_PS3_B_Y;
+    circ.r = SS_PS3_CB_R;
 
     ss_ps3_dpad dright;
-    dright.vx[0] = 190;
-    dright.vy[0] = 433;
-    dright.vx[1] = 208;
-    dright.vy[1] = 414;
-    dright.vx[2] = 233;
-    dright.vy[2] = 414;
-    dright.vx[3] = 233;
-    dright.vy[3] = 452;
-    dright.vx[4] = 208;
-    dright.vy[4] = 452;
-
     ss_ps3_dpad dleft;
-    dleft.vx[0] = 160;
-    dleft.vy[0] = 433;
-    dleft.vx[1] = 142;
-    dleft.vy[1] = 452;
-    dleft.vx[2] = 117;
-    dleft.vy[2] = 452;
-    dleft.vx[3] = 117;
-    dleft.vy[3] = 414;
-    dleft.vx[4] = 142;
-    dleft.vy[4] = 414;
-
     ss_ps3_dpad dup;
-    dup.vx[0] = 175;
-    dup.vy[0] = 418;
-    dup.vx[1] = 156;
-    dup.vy[1] = 400;
-    dup.vx[2] = 156;
-    dup.vy[2] = 375;
-    dup.vx[3] = 194;
-    dup.vy[3] = 375;
-    dup.vx[4] = 194;
-    dup.vy[4] = 400;
-
     ss_ps3_dpad ddown;
-    ddown.vx[0] = 175;
-    ddown.vy[0] = 448;
-    ddown.vx[1] = 194;
-    ddown.vy[1] = 466;
-    ddown.vx[2] = 194;
-    ddown.vy[2] = 491;
-    ddown.vx[3] = 156;
-    ddown.vy[3] = 491;
-    ddown.vx[4] = 156;
-    ddown.vy[4] = 466;
+    for (int i = 0; i < 5; i++){
+        dright.vx[i] = SS_PS3_RDP_X + SS_PS3_RDP_VX_OFF[i];
+        dright.vy[i] = SS_PS3_RDP_Y + SS_PS3_RDP_VY_OFF[i];
+        dleft.vx[i] = SS_PS3_LDP_VX_OFF[i] + SS_PS3_LDP_X;
+        dleft.vy[i] = SS_PS3_LDP_VY_OFF[i] + SS_PS3_LDP_Y;
+        dup.vx[i] = SS_PS3_UDP_VX_OFF[i] + SS_PS3_UDP_X;
+        dup.vy[i] = SS_PS3_UDP_VY_OFF[i] + SS_PS3_UDP_Y;
+        ddown.vx[i] = SS_PS3_DDP_VX_OFF[i] + SS_PS3_DDP_X;
+        ddown.vy[i] = SS_PS3_DDP_VY_OFF[i] + SS_PS3_DDP_Y;
+    }
 
     SDL_Rect select;
-    select.x = 317;
-    select.y = 424;
-    select.w = 32;
-    select.h = 18;
+    select.x = SS_PS3_BCK_X;
+    select.y = SS_PS3_BCK_Y;
+    select.w = SS_PS3_BCK_W;
+    select.h = SS_PS3_BCK_H;
 
     ss_triangle start;
-    start.vx[0] = 489;
-    start.vy[0] = 433;
-    start.vx[1] = 453;
-    start.vy[1] = 443;
-    start.vx[2] = 453;
-    start.vy[2] = 423;
+    for (int i = 0; i < 3; i ++){
+        start.vx[i] = SS_PS3_STRT_X + SS_PS3_STRT_VX_OFF[i];
+        start.vy[i] = SS_PS3_STRT_Y + SS_PS3_STRT_VY_OFF[i];
+    }
 
     SDL_Rect lshld;
-    lshld.x = 128;
-    lshld.y = 129;
-    lshld.w = 94;
-    lshld.h = 48;
+    lshld.x = SS_PS3_LSH_X;
+    lshld.y = SS_PS3_LSH_Y;
+    lshld.w = SS_PS3_LSH_W;
+    lshld.h = SS_PS3_LSH_H;
 
     SDL_Rect rshld;
-    rshld.x = 580;
-    rshld.y = 129;
-    rshld.w = 94;
-    rshld.h = 48;
+    rshld.x = SS_PS3_RSH_X;
+    rshld.y = SS_PS3_RSH_Y;
+    rshld.w = SS_PS3_RSH_W;
+    rshld.h = SS_PS3_RSH_H;
 
     ss_ps3_trigger ltrig;
     ltrig.body.x = 128;
@@ -308,10 +294,115 @@ int ss_menu_run(){
     rtrig.tip.rx = 47;
     rtrig.tip.ry = 16;
 
+    ss_circle rjoybut;
+    rjoybut.x = 516;
+    rjoybut.y = 542;
+    rjoybut.r = 77;
+
     ss_circle ljoybut;
-    ljoybut.x = 516;
+    ljoybut.x = 286;
     ljoybut.y = 542;
     ljoybut.r = 77;
+
+    // 0
+    ss_slice sltest;
+    sltest.tip.x = 587;
+    sltest.tip.y = 542;
+    sltest.tip.rx = 6;
+    sltest.tip.ry = 29;
+    sltest.body.vx[0] = 516;
+    sltest.body.vy[0] = 542;
+    sltest.body.vx[1] = 587;
+    sltest.body.vy[1] = 513;
+    sltest.body.vx[2] = 587;
+    sltest.body.vy[2] = 571;
+
+    ss_ps3_joystick rjoy;
+    rjoy.slices[0] = sltest;
+
+    // 1
+    rjoy.slices[1].tip.x = 566;
+    rjoy.slices[1].tip.y = 592;
+    rjoy.slices[1].tip.rx = 6;
+    rjoy.slices[1].tip.ry = 29;
+    rjoy.slices[1].body.vx[0] = 516;
+    rjoy.slices[1].body.vy[0] = 542;
+    rjoy.slices[1].body.vx[1] = 587;
+    rjoy.slices[1].body.vy[1] = 571;
+    rjoy.slices[1].body.vx[2] = 545;
+    rjoy.slices[1].body.vy[2] = 613;
+
+    // 2
+    rjoy.slices[2].tip.x = 516;
+    rjoy.slices[2].tip.y = 613;
+    rjoy.slices[2].tip.rx = 29;
+    rjoy.slices[2].tip.ry = 6;
+    rjoy.slices[2].body.vx[0] = 516;
+    rjoy.slices[2].body.vy[0] = 542;
+    rjoy.slices[2].body.vx[1] = 545;
+    rjoy.slices[2].body.vy[1] = 613;
+    rjoy.slices[2].body.vx[2] = 487;
+    rjoy.slices[2].body.vy[2] = 613;
+
+    // 3
+    rjoy.slices[3].tip.x = 466;
+    rjoy.slices[3].tip.y = 592;
+    rjoy.slices[3].tip.rx = 6;
+    rjoy.slices[3].tip.ry = 29;
+    rjoy.slices[3].body.vx[0] = 516;
+    rjoy.slices[3].body.vy[0] = 542;
+    rjoy.slices[3].body.vx[1] = 487;
+    rjoy.slices[3].body.vy[1] = 613;
+    rjoy.slices[3].body.vx[2] = 445;
+    rjoy.slices[3].body.vy[2] = 571;
+
+    // 4
+    rjoy.slices[4].tip.x = 445;
+    rjoy.slices[4].tip.y = 542;
+    rjoy.slices[4].tip.rx = 6;
+    rjoy.slices[4].tip.ry = 29;
+    rjoy.slices[4].body.vx[0] = 516;
+    rjoy.slices[4].body.vy[0] = 542;
+    rjoy.slices[4].body.vx[1] = 445;
+    rjoy.slices[4].body.vy[1] = 571;
+    rjoy.slices[4].body.vx[2] = 445;
+    rjoy.slices[4].body.vy[2] = 513;
+
+    // 5
+    rjoy.slices[5].tip.x = 466;
+    rjoy.slices[5].tip.y = 492;
+    rjoy.slices[5].tip.rx = 6;
+    rjoy.slices[5].tip.ry = 29;
+    rjoy.slices[5].body.vx[0] = 516;
+    rjoy.slices[5].body.vy[0] = 542;
+    rjoy.slices[5].body.vx[1] = 445;
+    rjoy.slices[5].body.vy[1] = 513;
+    rjoy.slices[5].body.vx[2] = 487;
+    rjoy.slices[5].body.vy[2] = 471;
+
+    // 6
+    rjoy.slices[6].tip.x = 516;
+    rjoy.slices[6].tip.y = 471;
+    rjoy.slices[6].tip.rx = 29;
+    rjoy.slices[6].tip.ry = 6;
+    rjoy.slices[6].body.vx[0] = 516;
+    rjoy.slices[6].body.vy[0] = 542;
+    rjoy.slices[6].body.vx[1] = 487;
+    rjoy.slices[6].body.vy[1] = 471;
+    rjoy.slices[6].body.vx[2] = 545;
+    rjoy.slices[6].body.vy[2] = 471;
+
+    // 7
+    rjoy.slices[7].tip.x = 566;
+    rjoy.slices[7].tip.y = 492;
+    rjoy.slices[7].tip.rx = 6;
+    rjoy.slices[7].tip.ry = 29;
+    rjoy.slices[7].body.vx[0] = 516;
+    rjoy.slices[7].body.vy[0] = 542;
+    rjoy.slices[7].body.vx[1] = 545;
+    rjoy.slices[7].body.vy[1] = 471;
+    rjoy.slices[7].body.vx[2] = 587;
+    rjoy.slices[7].body.vy[2] = 513;
 
     // joysizes x = 516
     // y = 542
@@ -337,7 +428,182 @@ int ss_menu_run(){
     ss_ps3_cvs_drawtrig(renderer, &ltrig, &tcolor, true);
     ss_ps3_cvs_drawtrig(renderer, &rtrig, &tcolor, true);
 
-    ss_canvas_drawcircle(renderer, &ljoybut, &tcolor, true);
+//    ss_canvas_drawcircle(renderer, &ljoybut, &tcolor, true);
+
+//    ss_canvas_drawslice(renderer, &sltest, &tcolor, true);
+
+//    ss_ps3_cvs_drawjoy(renderer, &rjoy, &tcolor, true, false, NULL, 0);
+
+//    ss_ps3_cvs_drawjoy(renderer, &rjoy, NULL, true, true, &colors, 3);
+/*
+    alpha.a = 160;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[0]), &alpha, true);
+    alpha.a = 180;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[1]), &alpha, true);
+    alpha.a = 127;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[2]), &alpha, true);
+    alpha.a = 15;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[3]), &alpha, true);
+    alpha.a = 70;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[4]), &alpha, true);
+    alpha.a = 90;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[5]), &alpha, true);
+    alpha.a = 210;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[6]), &alpha, true);
+    alpha.a = 189;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[7]), &alpha, true);
+
+    int xdiff = rjoybut.x - ljoybut.x;
+
+    for (int i = 0; i < 8; i++){
+        
+        printf("\n these are x\n");
+        for (int j = 0; j < 3; j++){
+            rjoy.slices[i].body.vx[j] -= xdiff;
+            printf("%i, %i, %i\n", i, j, rjoy.slices[i].body.vx[j]);
+        }
+    }
+
+    alpha.a = 160;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[0]), &alpha, true);
+    alpha.a = 180;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[1]), &alpha, true);
+    alpha.a = 127;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[2]), &alpha, true);
+    alpha.a = 15;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[3]), &alpha, true);
+    alpha.a = 70;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[4]), &alpha, true);
+    alpha.a = 90;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[5]), &alpha, true);
+    alpha.a = 210;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[6]), &alpha, true);
+    alpha.a = 189;
+    ss_canvas_drawslice(renderer, &(rjoy.slices[7]), &alpha, true);
+
+	rjoybut.r = 45;
+    ljoybut.r = 45;
+
+    ss_canvas_color black;
+    black.r = 0;
+    black.g = 0;
+    black.b = 0;
+    black.a = 255;
+
+    ss_canvas_color bs; 
+    bs = black;
+
+	ss_canvas_drawcircle(renderer, &(ljoybut), &black, true);
+    ss_canvas_drawcircle(renderer, &(rjoybut), &black, true);
+
+    alpha.a = 213;
+    ss_canvas_drawcircle(renderer, &(ljoybut), &alpha, true);
+    alpha.a = 23;
+    ss_canvas_drawcircle(renderer, &(rjoybut), &alpha, true);
+*/
+
+/*
+ these are x
+0, 0, 286
+0, 1, 357
+0, 2, 357
+
+ these are x
+1, 0, 286
+1, 1, 357
+1, 2, 315
+
+ these are x
+2, 0, 286
+2, 1, 315
+2, 2, 257
+
+ these are x
+3, 0, 286
+3, 1, 257
+3, 2, 215
+
+ these are x
+4, 0, 286
+4, 1, 215
+4, 2, 215
+
+ these are x
+5, 0, 286
+5, 1, 215
+5, 2, 257
+
+ these are x
+6, 0, 286
+6, 1, 257
+6, 2, 315
+
+ these are x
+7, 0, 286
+7, 1, 315
+7, 2, 357
+*/
+
+
+    /*
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, -23, 23, tcolor.r,
+            tcolor.g, tcolor.b, tcolor.a);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 23, 67, tcolor.r,
+            tcolor.g, tcolor.b, 180);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 67, 113, rcolor.r,
+            rcolor.g, rcolor.b, rcolor.a);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 113, 157, tcolor.r,
+            tcolor.g, tcolor.b, tcolor.a);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 157, 203, gcolor.r,
+            gcolor.g, gcolor.b, gcolor.a);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 203, 247, rcolor.r,
+            rcolor.g, rcolor.b, rcolor.a);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 247, 293, tcolor.r,
+            tcolor.g, tcolor.b, tcolor.a);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 293, 337, gcolor.r,
+            gcolor.g, gcolor.b, gcolor.a);
+*/
+
+    /*
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, -23, 23, tcolor.r,
+            tcolor.g, tcolor.b, 160);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 23, 67, tcolor.r,
+            tcolor.g, tcolor.b, 180);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 67, 113, tcolor.r,
+            tcolor.g, tcolor.b, 127);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 113, 157, tcolor.r,
+            tcolor.g, tcolor.b, 15);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 157, 203, tcolor.r,
+            tcolor.g, tcolor.b, 70);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 203, 247, tcolor.r,
+            tcolor.g, tcolor.b, 90);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 247, 293, tcolor.r,
+            tcolor.g, tcolor.b, 210);
+    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 293, 337, tcolor.r,
+            tcolor.g, tcolor.b, 189);
+
+    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, -23, 23, tcolor.r,
+            tcolor.g, tcolor.b, 160);
+    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 23, 67, tcolor.r,
+            tcolor.g, tcolor.b, 180);
+    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 67, 113, tcolor.r,
+            tcolor.g, tcolor.b, 127);
+    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 113, 157, tcolor.r,
+            tcolor.g, tcolor.b, 15);
+    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 157, 203, tcolor.r,
+            tcolor.g, tcolor.b, 70);
+    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 203, 247, tcolor.r,
+            tcolor.g, tcolor.b, 90);
+    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 247, 293, tcolor.r,
+            tcolor.g, tcolor.b, 210);
+    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 293, 337, tcolor.r,
+            tcolor.g, tcolor.b, 189);
+*/
+
+//    pieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, -22, 22, 0, 0, 0, 255);
+//    pieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 22, 67, 0, 0, 0, 255);
+
+
 //    filledCircleRGBA(renderer, 627, 492, 25, 13, 59, 95, 255);
 //    aacircleRGBA(renderer, 627, 492, 25, 13, 59, 95, 255);
 

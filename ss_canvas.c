@@ -120,6 +120,22 @@ int ss_canvas_drawrect(
     return SS_RETURN_SUCCESS;
 } // ss_canvas_drawrect
 
+int ss_canvas_drawslice(
+        SDL_Renderer *renderer,
+        const ss_slice *slice,
+        const ss_canvas_color *color,
+        bool add_aa
+){
+    if (/*ss_canvas_drawellip(renderer, &(slice->tip), color, add_aa)
+            == SS_RETURN_FAILURE
+            ||*/ ss_canvas_drawpoly(renderer, slice->body.vx, slice->body.vy,
+                SS_TRI_SIZE, color, add_aa) == SS_RETURN_FAILURE){
+        return SS_RETURN_FAILURE;
+    }
+
+    return SS_RETURN_SUCCESS;
+} // ss_canavs_drawslice
+
 int ss_canvas_init(){
     // TODO
     return SS_RETURN_SUCCESS;
