@@ -14,23 +14,6 @@
 
 #include "ss_canvas.h"
 
-//  CONSTANTS   ===============================================================
-
-// 14 buttons, 2 triggers and 2 joysticks
-#define PS3_SHAPE_SIZE 18
-
-//  VARIABLES   ===============================================================
-
-// shape data 
-static ss_canvas_shape ps3_shapes[PS3_SHAPE_SIZE];
-
-//  STATIC FUNCTIONS    =======================================================
-
-/*
- * Setups the ps3 shapes array
- */
-static void setup_ps3_shapes();
-
 //  IMPLEMNENTATION ===========================================================
 
 int ss_canvas_drawcircle(
@@ -120,21 +103,33 @@ int ss_canvas_drawrect(
     return SS_RETURN_SUCCESS;
 } // ss_canvas_drawrect
 
+/*
 int ss_canvas_drawslice(
         SDL_Renderer *renderer,
         const ss_slice *slice,
         const ss_canvas_color *color,
         bool add_aa
 ){
-    if (/*ss_canvas_drawellip(renderer, &(slice->tip), color, add_aa)
+    if (ss_canvas_drawellip(renderer, &(slice->tip), color, add_aa)
             == SS_RETURN_FAILURE
-            ||*/ ss_canvas_drawpoly(renderer, slice->body.vx, slice->body.vy,
+            || ss_canvas_drawpoly(renderer, slice->body.vx, slice->body.vy,
                 SS_TRI_SIZE, color, add_aa) == SS_RETURN_FAILURE){
         return SS_RETURN_FAILURE;
     }
 
     return SS_RETURN_SUCCESS;
 } // ss_canavs_drawslice
+*/
+
+int ss_canvas_drawtri(
+        SDL_Renderer *renderer,
+        const ss_triangle *triangle,
+        const ss_canvas_color *color,
+        bool add_aa
+){
+    return ss_canvas_drawpoly(renderer, triangle->vx, triangle->vy, 
+            SS_TRI_SIZE, color, add_aa);
+} // ss_canavs_drawtri
 
 int ss_canvas_init(){
     // TODO
@@ -180,6 +175,3 @@ int ss_open_canvas(){
 
 //  STATIC IMPLEMENTATION   ===================================================
 
-static void setup_ps3_shapes(){
-//    ps3_offsets[SS_BUTTON_A].circle.xoff = 627;
-} // setup_ps3_shapes

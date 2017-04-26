@@ -23,6 +23,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+#include <string.h>
 #include <time.h> // testing time
 
 #include "SDL2/SDL.h"
@@ -30,6 +31,7 @@
 #include "SDL2/SDL2_gfxPrimitives.h"
 
 #include "ss_canvas.h"
+#include "ss_canvas_color.h"
 #include "ss_constants.h"
 #include "ss_gamecontroller.h"
 #include "ss_parallel_helpers.h"
@@ -180,7 +182,8 @@ int ss_menu_run(){
     }
 
     //bitmapSurface = SDL_LoadBMP("images/controllerdiag_temp.bmp");
-    bitmapSurface = SDL_LoadBMP("images/controllermap.bmp");
+//    bitmapSurface = SDL_LoadBMP("images/controllermap.bmp");
+    bitmapSurface = SDL_LoadBMP("images/controllermap_white.bmp");
     bitmapTex = SDL_CreateTextureFromSurface(renderer, bitmapSurface);
     outtex.x = 0;
     outtex.y = 0;
@@ -190,22 +193,13 @@ int ss_menu_run(){
     SDL_RenderCopy(renderer, bitmapTex, NULL, &outtex);
 
     ss_canvas_color tcolor;
-    tcolor.r = 33;
-    tcolor.g = 150;
-    tcolor.b = 243;
-    tcolor.a = 255;
+    tcolor = SS_CLR_MDBLUE;
 
     ss_canvas_color gcolor;
-    gcolor.r = 76;
-    gcolor.g = 175;
-    gcolor.b = 80;
-    gcolor.a = 255;
+    gcolor = SS_CLR_MDGREEN;
 
     ss_canvas_color rcolor;
-    rcolor.r = 244;
-    rcolor.g = 67;
-    rcolor.b = 54;
-    rcolor.a = 255;
+    rcolor = SS_CLR_MDRED;
 
     ss_canvas_color alpha;
     alpha = tcolor;
@@ -218,36 +212,36 @@ int ss_menu_run(){
     ss_circle X;
     X.x = SS_PS3_A_X;
     X.y = SS_PS3_A_Y;
-    X.r = SS_PS3_CB_R;
+    X.r = SS_PS3_A_R;
 
     ss_circle Triag;
     Triag.x = SS_PS3_Y_X;
     Triag.y = SS_PS3_Y_Y;
-    Triag.r = SS_PS3_CB_R;
+    Triag.r = SS_PS3_Y_R;
 
     ss_circle square;
     square.x = SS_PS3_X_X;
     square.y = SS_PS3_X_Y;
-    square.r = SS_PS3_CB_R;
+    square.r = SS_PS3_X_R;
 
     ss_circle circ;
     circ.x = SS_PS3_B_X;
     circ.y = SS_PS3_B_Y;
-    circ.r = SS_PS3_CB_R;
+    circ.r = SS_PS3_B_R;
 
     ss_ps3_dpad dright;
     ss_ps3_dpad dleft;
     ss_ps3_dpad dup;
     ss_ps3_dpad ddown;
     for (int i = 0; i < 5; i++){
-        dright.vx[i] = SS_PS3_RDP_X + SS_PS3_RDP_VX_OFF[i];
-        dright.vy[i] = SS_PS3_RDP_Y + SS_PS3_RDP_VY_OFF[i];
-        dleft.vx[i] = SS_PS3_LDP_VX_OFF[i] + SS_PS3_LDP_X;
-        dleft.vy[i] = SS_PS3_LDP_VY_OFF[i] + SS_PS3_LDP_Y;
-        dup.vx[i] = SS_PS3_UDP_VX_OFF[i] + SS_PS3_UDP_X;
-        dup.vy[i] = SS_PS3_UDP_VY_OFF[i] + SS_PS3_UDP_Y;
-        ddown.vx[i] = SS_PS3_DDP_VX_OFF[i] + SS_PS3_DDP_X;
-        ddown.vy[i] = SS_PS3_DDP_VY_OFF[i] + SS_PS3_DDP_Y;
+        dright.vx[i] = SS_PS3_RDP_VX[i];
+        dright.vy[i] = SS_PS3_RDP_VY[i];
+        dleft.vx[i] = SS_PS3_LDP_VX[i];
+        dleft.vy[i] = SS_PS3_LDP_VY[i];
+        dup.vx[i] = SS_PS3_UDP_VX[i];
+        dup.vy[i] = SS_PS3_UDP_VY[i];
+        ddown.vx[i] = SS_PS3_DDP_VX[i];
+        ddown.vy[i] = SS_PS3_DDP_VY[i];
     }
 
     SDL_Rect select;
@@ -258,8 +252,8 @@ int ss_menu_run(){
 
     ss_triangle start;
     for (int i = 0; i < 3; i ++){
-        start.vx[i] = SS_PS3_STRT_X + SS_PS3_STRT_VX_OFF[i];
-        start.vy[i] = SS_PS3_STRT_Y + SS_PS3_STRT_VY_OFF[i];
+        start.vx[i] = SS_PS3_STRT_VX[i];
+        start.vy[i] = SS_PS3_STRT_VY[i];
     }
 
     SDL_Rect lshld;
@@ -275,35 +269,49 @@ int ss_menu_run(){
     rshld.h = SS_PS3_RSH_H;
 
     ss_ps3_trigger ltrig;
-    ltrig.body.x = 128;
-    ltrig.body.y = 31;
-    ltrig.body.w = 94;
-    ltrig.body.h = 60;
-    ltrig.tip.x = 175;
-    ltrig.tip.y = 31;
-    ltrig.tip.rx = 47;
-    ltrig.tip.ry = 16;
+    ltrig.body.x    = SS_PS3_LTR_B_X;
+    ltrig.body.y    = SS_PS3_LTR_B_Y;
+    ltrig.body.w    = SS_PS3_LTR_B_W;
+    ltrig.body.h    = SS_PS3_LTR_B_H;
+    ltrig.tip.x     = SS_PS3_LTR_T_X;
+    ltrig.tip.y     = SS_PS3_LTR_T_Y;
+    ltrig.tip.rx    = SS_PS3_LTR_T_RX;
+    ltrig.tip.ry    = SS_PS3_LTR_T_RY;
 
     ss_ps3_trigger rtrig;
-    rtrig.body.x = 580;
-    rtrig.body.y = 31;
-    rtrig.body.w = 94;
-    rtrig.body.h = 60;
-    rtrig.tip.x = 627;
-    rtrig.tip.y = 31;
-    rtrig.tip.rx = 47;
-    rtrig.tip.ry = 16;
+    rtrig.body.x    = SS_PS3_RTR_B_X;
+    rtrig.body.y    = SS_PS3_RTR_B_Y;
+    rtrig.body.w    = SS_PS3_RTR_B_W;
+    rtrig.body.h    = SS_PS3_RTR_B_H;
+    rtrig.tip.x     = SS_PS3_RTR_T_X;
+    rtrig.tip.y     = SS_PS3_RTR_T_Y;
+    rtrig.tip.rx    = SS_PS3_RTR_T_RX;
+    rtrig.tip.ry    = SS_PS3_RTR_T_RY;
 
     ss_circle rjoybut;
-    rjoybut.x = 516;
-    rjoybut.y = 542;
-    rjoybut.r = 77;
+    rjoybut.x = SS_PS3_LTHM_X;
+    rjoybut.y = SS_PS3_LTHM_Y;
+    rjoybut.r = SS_PS3_LTHM_R;
 
     ss_circle ljoybut;
-    ljoybut.x = 286;
-    ljoybut.y = 542;
-    ljoybut.r = 77;
+    ljoybut.x = SS_PS3_RTHM_X;
+    ljoybut.y = SS_PS3_RTHM_Y;
+    ljoybut.r = SS_PS3_RTHM_R;
+    // raduis 77
 
+    ss_ps3_joystick rjoy;
+    ss_ps3_joystick ljoy;
+
+    for (int i = 0; i < 8; i++){
+//        for (int q = 0; q < 3; q++){
+            memcpy(rjoy.slices[i].vx, SS_PS3_RJY_SLS_VX[i], 3*sizeof(Sint16));
+            memcpy(rjoy.slices[i].vy, SS_PS3_RJY_SLS_VY[i], 3*sizeof(Sint16));
+            memcpy(ljoy.slices[i].vx, SS_PS3_LJY_SLS_VX[i], 3*sizeof(Sint16));
+            memcpy(ljoy.slices[i].vy, SS_PS3_LJY_SLS_VY[i], 3*sizeof(Sint16));
+//        }
+    }
+
+/*
     // 0
     ss_slice sltest;
     sltest.tip.x = 587;
@@ -403,7 +411,7 @@ int ss_menu_run(){
     rjoy.slices[7].body.vy[1] = 471;
     rjoy.slices[7].body.vx[2] = 587;
     rjoy.slices[7].body.vy[2] = 513;
-
+*/
     // joysizes x = 516
     // y = 542
     // r = 77
@@ -428,6 +436,23 @@ int ss_menu_run(){
     ss_ps3_cvs_drawtrig(renderer, &ltrig, &tcolor, true);
     ss_ps3_cvs_drawtrig(renderer, &rtrig, &tcolor, true);
 
+    alpha.a = 45;
+    for (int i = 0; i < 8; i++){
+        ss_canvas_drawtri(renderer, &(rjoy.slices[i]), &alpha, true);
+        ss_canvas_drawtri(renderer, &(ljoy.slices[i]), &alpha, true);
+        alpha.a = (alpha.a + 45) % 255;
+    }
+
+
+	ss_canvas_drawcircle(renderer, &(ljoybut), &SS_CLR_BLACK, true);
+    ss_canvas_drawcircle(renderer, &(rjoybut), &SS_CLR_BLACK, true);
+
+    alpha.a = 213;
+    ss_canvas_drawcircle(renderer, &(ljoybut), &alpha, true);
+    alpha.a = 189;
+    ss_canvas_drawcircle(renderer, &(rjoybut), &alpha, true);
+
+
 //    ss_canvas_drawcircle(renderer, &ljoybut, &tcolor, true);
 
 //    ss_canvas_drawslice(renderer, &sltest, &tcolor, true);
@@ -435,72 +460,8 @@ int ss_menu_run(){
 //    ss_ps3_cvs_drawjoy(renderer, &rjoy, &tcolor, true, false, NULL, 0);
 
 //    ss_ps3_cvs_drawjoy(renderer, &rjoy, NULL, true, true, &colors, 3);
-/*
-    alpha.a = 160;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[0]), &alpha, true);
-    alpha.a = 180;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[1]), &alpha, true);
-    alpha.a = 127;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[2]), &alpha, true);
-    alpha.a = 15;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[3]), &alpha, true);
-    alpha.a = 70;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[4]), &alpha, true);
-    alpha.a = 90;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[5]), &alpha, true);
-    alpha.a = 210;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[6]), &alpha, true);
-    alpha.a = 189;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[7]), &alpha, true);
 
-    int xdiff = rjoybut.x - ljoybut.x;
 
-    for (int i = 0; i < 8; i++){
-        
-        printf("\n these are x\n");
-        for (int j = 0; j < 3; j++){
-            rjoy.slices[i].body.vx[j] -= xdiff;
-            printf("%i, %i, %i\n", i, j, rjoy.slices[i].body.vx[j]);
-        }
-    }
-
-    alpha.a = 160;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[0]), &alpha, true);
-    alpha.a = 180;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[1]), &alpha, true);
-    alpha.a = 127;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[2]), &alpha, true);
-    alpha.a = 15;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[3]), &alpha, true);
-    alpha.a = 70;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[4]), &alpha, true);
-    alpha.a = 90;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[5]), &alpha, true);
-    alpha.a = 210;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[6]), &alpha, true);
-    alpha.a = 189;
-    ss_canvas_drawslice(renderer, &(rjoy.slices[7]), &alpha, true);
-
-	rjoybut.r = 45;
-    ljoybut.r = 45;
-
-    ss_canvas_color black;
-    black.r = 0;
-    black.g = 0;
-    black.b = 0;
-    black.a = 255;
-
-    ss_canvas_color bs; 
-    bs = black;
-
-	ss_canvas_drawcircle(renderer, &(ljoybut), &black, true);
-    ss_canvas_drawcircle(renderer, &(rjoybut), &black, true);
-
-    alpha.a = 213;
-    ss_canvas_drawcircle(renderer, &(ljoybut), &alpha, true);
-    alpha.a = 23;
-    ss_canvas_drawcircle(renderer, &(rjoybut), &alpha, true);
-*/
 
 /*
  these are x

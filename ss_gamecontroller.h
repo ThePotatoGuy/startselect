@@ -95,44 +95,6 @@ typedef struct{
     ss_trigger_data trigger_right;
 } ss_generic_controller;
 
-//  CONSTANTS   ===============================================================
-
-// button indexes
-extern const int SS_BUTTON_A;
-extern const int SS_BUTTON_B;
-extern const int SS_BUTTON_X;
-extern const int SS_BUTTON_Y;
-extern const int SS_BUTTON_BACK;
-extern const int SS_BUTTON_START;
-extern const int SS_BUTTON_LEFT_THUMB;
-extern const int SS_BUTTON_RIGHT_THUMB;
-extern const int SS_BUTTON_LEFT_SHOULDER;
-extern const int SS_BUTTON_RIGHT_SHOULDER;
-extern const int SS_BUTTON_DPAD_UP;
-extern const int SS_BUTTON_DPAD_DOWN;
-extern const int SS_BUTTON_DPAD_LEFT;
-extern const int SS_BUTTON_DPAD_RIGHT;
-
-// trigger and joystick indexes
-// this is mainly for canvas usage 
-// TODO move this (and the other indexes) to seperate files that handle
-// controller constants (like one for ps3, one for xbone, one for steam, and
-// so on
-extern const int SS_TRIGGER_LEFT;
-extern const int SS_TRIGGER_RIGHT;
-extern const int SS_JOYSTICK_LEFT;
-extern const int SS_JOYSTICK_RIGHT;
-
-// joystick values
-extern const int SS_JOYSTICK_MAX;
-extern const int SS_JOYSTICK_MIN;
-
-// trigger values
-extern const int SS_TRIGGER_MAX;
-extern const int SS_TRIGGER_MIN;
-
-// number of buttons
-extern const int SS_BUTTON_COUNT;
 
 //  FUNCTIONS   ===============================================================
 

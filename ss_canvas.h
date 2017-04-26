@@ -13,6 +13,7 @@
 
 #include "SDL2/SDL.h"
 
+#include "ss_canvas_color.h"
 #include "ss_shape.h"
 
 //  CONSTANTS   ===============================================================
@@ -22,21 +23,13 @@
 
 //  TYPES   ===================================================================
 
-// parts of a color
-// 255 is max, 0 is min
-typedef struct{
-    unsigned char r;    // red
-    unsigned char g;    // green
-    unsigned char b;    // blue
-    unsigned char a;    // alpha
-} ss_canvas_color;
-
 // shape data union
 typedef union{
     ss_triangle     triangle;
     ss_ellipse      ellipse;
     ss_circle       circle;
     ss_slice        slice;
+    SDL_Rect        rect;
     ss_ps3_dpad     ps3_dpad;
     ss_ps3_trigger  ps3_trigger;
     ss_ps3_joystick ps3_joystick;
@@ -135,9 +128,28 @@ int ss_canvas_drawrect(
  * OUT:
  *  @returns SS_RETURN_SUCCESS on suyccess, SS_RETURN_FAILURE otherwise
  */
-int ss_canvas_drawslice(
+/*int ss_canvas_drawslice(
         SDL_Renderer *renderer,
         const ss_slice *slice,
+        const ss_canvas_color *color,
+        bool add_aa
+);*/
+
+/*
+ * Draws a trinalge using the given ss_traingle onto the given rendere
+ *
+ * IN:
+ *  @param renderer - the SDL_renderer to draw on
+ *  @param triangle - dimensions of the triangle to draw
+ *  @param color - color of the triangle to draw
+ *  @param add_aa - true draws the triangle with AA, false does not
+ *
+ * OUT:
+ *  @returns SS_RETURN_SUCCESS on success, SS_RETURN_FAILURE otherwise
+ */
+int ss_canvas_drawtri(
+        SDL_Renderer *renderer,
+        const ss_triangle *triangle,
         const ss_canvas_color *color,
         bool add_aa
 );

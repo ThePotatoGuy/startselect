@@ -41,27 +41,20 @@ int ss_ps3_cvs_drawdpad(
  * IN:
  *  @param renderer - the SDL_Renderer to draw on
  *  @param joystick - the dimensions of teh joystick to draw
- *  @param color - the color of the joystick to draw (only used if alt_color
- *      is false, can be NULL if alt_color is true)
+ *  @param color - the color of the joystick to draw 
  *  @param add_aa - true draws the joystick with AA, false does not
- *  @param alt_color - true uses extra colors array and alternates colors
- *  @param extra - array of additional colors to use (only used if
- *      alt_color is true, can be NULL if alt_color is false
- *  @param alt_clr_ct - number of alternate colors to use (only used if
- *      alt_color is true
  *
  * OUT:
  *  @returns SS_RETURN_SUCCESS on success, SS_RETURN_FAILURe otherwise
  */
+/*
 int ss_ps3_cvs_drawjoy(
         SDL_Renderer *renderer,
         const ss_ps3_joystick *joystick,
         const ss_canvas_color *color,
         bool add_aa,
-        bool alt_color,
-        const ss_canvas_color *extra,
-        unsigned int alt_clr_ct
 );
+*/
 
 /*
  * Draws a PS3 trigger using the given trigger onto the given renderer
@@ -81,5 +74,13 @@ int ss_ps3_cvs_drawtrig(
         const ss_canvas_color *color,
         bool add_aa
 );
+
+/*
+ * Initializes this PS3 canvas
+ *
+ * OUT:
+ *  @returns SS_RETURN_SUCCESS on success, SS_RETURN_FAILURE otherwise
+ */
+int ss_ps3_cvs_init();
 
 #endif

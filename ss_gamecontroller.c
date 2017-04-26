@@ -17,15 +17,13 @@
 #include <math.h>
 
 #include "ss_constants.h"
+#include "ss_gc_constants.h"
 
 #include "ss_gamecontroller.h"
 
 //  CONSTANTS   ===============================================================
 
-//static const int BUTTON_COUNT = 14;
-#define BUTTON_COUNT 14
 #define BUTTON_STR_SIZE 20
-const int SS_BUTTON_COUNT = BUTTON_COUNT;
 
 // button descriptions
 static const char BUTTON_A[]                = "A";
@@ -33,7 +31,7 @@ static const char BUTTON_B[]                = "B";
 static const char BUTTON_X[]                = "X";
 static const char BUTTON_Y[]                = "Y";
 static const char BUTTON_BACK[]             = "Back";
-static const char BUTTON_GUIDE[]            = "Guide"; // unused
+//static const char BUTTON_GUIDE[]            = "Guide"; // unused
 static const char BUTTON_START[]            = "Start";
 static const char BUTTON_LEFT_THUMB[]       = "Left thumb";
 static const char BUTTON_RIGHT_THUMB[]      = "Right thumb";
@@ -43,42 +41,11 @@ static const char BUTTON_DPAD_UP[]          = "D up";
 static const char BUTTON_DPAD_DOWN[]        = "D down";
 static const char BUTTON_DPAD_LEFT[]        = "D left";
 static const char BUTTON_DPAD_RIGHT[]       = "D right";
-static const char BUTTON_MAX[]              = "Max"; // unused
-static const char BUTTON_INVALID[]          = "Invalid"; // unusedi
-
-
-// button indexes (based on hardcoded button array)
-const int SS_BUTTON_A               = 0;
-const int SS_BUTTON_B               = 1;
-const int SS_BUTTON_X               = 2;
-const int SS_BUTTON_Y               = 3;
-const int SS_BUTTON_BACK            = 4;
-const int SS_BUTTON_START           = 5;
-const int SS_BUTTON_LEFT_THUMB      = 6;
-const int SS_BUTTON_RIGHT_THUMB     = 7;
-const int SS_BUTTON_LEFT_SHOULDER   = 8;
-const int SS_BUTTON_RIGHT_SHOULDER  = 9;
-const int SS_BUTTON_DPAD_UP         = 10;
-const int SS_BUTTON_DPAD_DOWN       = 11;
-const int SS_BUTTON_DPAD_LEFT       = 12;
-const int SS_BUTTON_DPAD_RIGHT      = 13;
-
-// trigger and joystick indexes 
-const int SS_TRIGGER_LEFT           = 14;
-const int SS_TRIGGER_RIGHT          = 15;
-const int SS_JOYSTICK_LEFT          = 16;
-const int SS_JOYSTICK_RIGHT         = 17;
-
-// joystick values
-const int SS_JOYSTICK_MAX           = 32767;
-const int SS_JOYSTICK_MIN           = -32768;
-
-// trigger values
-const int SS_TRIGGER_MAX            = 255;
-const int SS_TRIGGER_MIN            = 0;
+//static const char BUTTON_MAX[]              = "Max"; // unused
+static const char BUTTON_INVALID[]          = "Invalid"; 
 
 // hardcoded button array
-static char BUTTON_STRS[BUTTON_COUNT][BUTTON_STR_SIZE];
+static char BUTTON_STRS[SS_BUTTON_COUNT][BUTTON_STR_SIZE];
 /*static const char BUTTON_STRS[BUTTON_COUNT][BUTTON_STR_SIZE] = {
     "A",
     "B",
@@ -97,8 +64,8 @@ static char BUTTON_STRS[BUTTON_COUNT][BUTTON_STR_SIZE];
 };*/
 
 // pressed released description
-static const char BUTTON_PRESSED[]          = "Pressed";
-static const char BUTTON_RELEASED[]         = "Released";
+//static const char BUTTON_PRESSED[]          = "Pressed";
+//static const char BUTTON_RELEASED[]         = "Released";
 
 // left, right descriptions
 static const char AXIS_LEFT[]       = "Left";
@@ -375,7 +342,7 @@ static void destroy_button_data(ss_button_data *buttons){
 } // destroy_button_data
 
 static int init_button_data(ss_button_data *buttons){
-    buttons->pressed = malloc(BUTTON_COUNT*sizeof(int));
+    buttons->pressed = malloc(SS_BUTTON_COUNT*sizeof(int));
 //    buttons->states = malloc(BUTTON_COUNT*sizeof(SS_BUTTON_STATE));
 
     if (buttons->pressed == NULL
@@ -383,9 +350,9 @@ static int init_button_data(ss_button_data *buttons){
         return SS_RETURN_ERROR;
     }
 
-    buttons->size = BUTTON_COUNT;
+    buttons->size = SS_BUTTON_COUNT;
 
-    for (int index = 0; index < BUTTON_COUNT; index++){
+    for (int index = 0; index < SS_BUTTON_COUNT; index++){
         buttons->pressed[index] = 0;
 //        buttons->states[index] = SS_BUTTON_RELEASED;
     }
@@ -438,7 +405,7 @@ static bool is_trigger_active(ss_trigger_data *trigger){
 
 static void print_button_data(ss_button_data *buttons){
     // now go thru the pressed array and print out appropriate press statements
-    for (int index = 0; index < BUTTON_COUNT; index++){
+    for (int index = 0; index < SS_BUTTON_COUNT; index++){
         if (buttons->pressed[index]){
             printf(BUTTON_FMT_STR, BUTTON_STRS[index]);
         }

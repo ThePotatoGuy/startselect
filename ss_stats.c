@@ -19,6 +19,7 @@
 #include "ss_config.h"
 #include "ss_constants.h"
 #include "ss_gamecontroller.h"
+#include "ss_gc_constants.h"
 
 #include "ss_stats.h"
 

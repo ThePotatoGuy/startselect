@@ -68,7 +68,10 @@ typedef struct{
 // components of a ps3 joystick
 // > bascially all the slices of the joystick
 typedef struct{
-    ss_slice slices[SS_PS3_JOY_SIZE];   // slices of the joystick
+    // we no longer use ellipse part of slices
+//    ss_slice slices[SS_PS3_JOY_SIZE];   // slices of the joystick
+
+    ss_triangle slices[SS_PS3_JOY_SIZE];    // slice sof the joystick
 } ss_ps3_joystick;
 
 #endif
