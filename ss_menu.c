@@ -36,10 +36,12 @@
 #include "ss_gamecontroller.h"
 #include "ss_parallel_helpers.h"
 #include "ss_shape.h"
+#include "ss_statprocessor.h"
 #include "ss_stats.h"
 
 #include "ss_ps3_canvas.h"
 #include "ss_ps3_constants.h"
+#include "ss_ps3_statcolors.h"
 
 #include "ss_menu.h"
 
@@ -51,6 +53,15 @@ typedef struct{
     /* quit signal, broadcasted from openwindow */
     pthread_mutex_t     *end_mutex;
     int                 *end;
+
+    // stats have been sent signal
+    pthread_mutex_t     *sentstat_mutex;
+//    pthread_cond_t      *sentstat_cond;
+    int                 *sentstat;
+
+    // stat data
+    pthread_mutex_t     *stats_mutex;
+    ss_generic_controller_stats *stats;
 
 } ss_event_data;
 
@@ -67,23 +78,26 @@ void* ss_event_handling(void *thread_data){
     DWORD res;
     DWORD packet_num;
     ss_generic_controller controller;
-    ss_generic_controller_stats stats;
+    ss_generic_controller_stats *stats;
 
     int rc;
     LARGE_INTEGER pfcount, pfreq, pfend;
 
     data = (ss_event_data*)thread_data;
+
+    pthread_mutex_lock(data->stats_mutex);
+    stats = data->stats;
+
     quit = 0;
     ZeroMemory(&state, sizeof(XINPUT_STATE));
     packet_num = 0;
 
     int controller_id = 0; // assuming the first controller for now
     ss_init_gamecontroller();
-    ss_init_stats();
     
     if(ss_init_gamecontroller() == SS_RETURN_ERROR
             || ss_init_generic_controller(&controller) == SS_RETURN_ERROR
-            || ss_init_generic_controller_stats(&stats) == SS_RETURN_ERROR){
+        ){
 
         printf("failureeeee\n");
         return NULL;
@@ -102,7 +116,14 @@ void* ss_event_handling(void *thread_data){
             if(state.dwPacketNumber != packet_num){
                 // differences occureed
                 ss_process_input(&controller, &(state.Gamepad));
-                ss_process_stats(&stats, &controller);
+
+//                pthread_mutex_lock(data->stats_mutex);
+                ss_process_stats(stats, &controller);
+//                pthread_mutex_unlock(data->stats_mutex);
+
+//                ph_set(data->sentstat_mutex, data->sentstat, 1);
+                
+
 //                ss_print_generic_controller(&controller);
       //          QueryPerformanceCounter(&pfend);
     //            testtime = (1000 * (pfend.QuadPart - pfcount.QuadPart)) / 
@@ -124,9 +145,10 @@ void* ss_event_handling(void *thread_data){
         quit = ph_get(data->end_mutex, data->end);
     }
 
-    ss_print_stats(&stats);
+    ss_print_stats(stats);
+    
+    pthread_mutex_unlock(data->stats_mutex);
 
-    ss_destroy_generic_controller_stats(&stats);
     ss_destroy_generic_controller(&controller);
     ss_destroy_gamecontroller();
 
@@ -137,18 +159,42 @@ void* ss_event_handling(void *thread_data){
 int ss_menu_run(){
 
     ss_event_data data;
-    pthread_mutex_t end_mutex;
+    pthread_mutex_t end_mutex, sentstat_mutex, stats_mutex;
+    pthread_cond_t  sentstat_cond;
     pthread_attr_t  join;
-    int end;
+    int end, sentstat;
     void *status;
+    ss_generic_controller_stats stats;
+
+
+    if (ss_init_stats() == SS_RETURN_FAILURE
+            || ss_init_generic_controller_stats(&stats) == SS_RETURN_FAILURE
+            || ss_ps3_cvs_init() == SS_RETURN_FAILURE
+            
+        ){
+
+        printf("init fail\n");
+        return SS_RETURN_FAILURE;
+    }
 
     pthread_mutex_init(&end_mutex, NULL);
+    pthread_mutex_init(&sentstat_mutex, NULL);
+    pthread_mutex_init(&stats_mutex, NULL);
+//    pthread_cond_init(&sentstat_cond, NULL);
     pthread_attr_init(&join);
     end = 0;
+    sentstat = 0;
+
     status = NULL;
 
     data.end_mutex = &end_mutex;
     data.end = &end;
+    data.sentstat_mutex = &sentstat_mutex;
+//    data.sentstat_cond = &sentstat_cond;
+    data.sentstat = &sentstat;
+    data.stats_mutex = &stats_mutex;
+    data.stats = &stats;
+
     pthread_attr_setdetachstate(&join, PTHREAD_CREATE_JOINABLE);
 
     pthread_t controller_thread;
@@ -183,7 +229,20 @@ int ss_menu_run(){
 
     //bitmapSurface = SDL_LoadBMP("images/controllerdiag_temp.bmp");
 //    bitmapSurface = SDL_LoadBMP("images/controllermap.bmp");
-    bitmapSurface = SDL_LoadBMP("images/controllermap_white.bmp");
+
+//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV.bmp");
+//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV1.bmp");
+//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV2.bmp");
+//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV3.bmp");
+//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV4.bmp");
+//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV5.bmp");
+//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV6.bmp");
+//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV7.bmp");
+    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV8.bmp");
+//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV9.bmp");
+//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV10.bmp");
+
+    //bitmapSurface = SDL_LoadBMP("images/controllermap_white.bmp");
     bitmapTex = SDL_CreateTextureFromSurface(renderer, bitmapSurface);
     outtex.x = 0;
     outtex.y = 0;
@@ -191,7 +250,17 @@ int ss_menu_run(){
     outtex.h = bitmapSurface->h;
     SDL_FreeSurface(bitmapSurface);
     SDL_RenderCopy(renderer, bitmapTex, NULL, &outtex);
+    SDL_RenderPresent(renderer);
 
+
+    ss_ps3_colors statcolors;
+
+    ss_canvas_color maincolor;
+    maincolor = SS_CLR_MDBLUE;
+
+    ss_ps3_stclr_fill(&statcolors, &maincolor, true);
+
+    /*
     ss_canvas_color tcolor;
     tcolor = SS_CLR_MDBLUE;
 
@@ -310,6 +379,7 @@ int ss_menu_run(){
             memcpy(ljoy.slices[i].vy, SS_PS3_LJY_SLS_VY[i], 3*sizeof(Sint16));
 //        }
     }
+    */
 
 /*
     // 0
@@ -415,7 +485,7 @@ int ss_menu_run(){
     // joysizes x = 516
     // y = 542
     // r = 77
-
+/*
     ss_canvas_drawcircle(renderer, &X, &tcolor, true);
     ss_canvas_drawcircle(renderer, &Triag, &tcolor, true);
     ss_canvas_drawcircle(renderer, &square, &tcolor, true);
@@ -451,7 +521,7 @@ int ss_menu_run(){
     ss_canvas_drawcircle(renderer, &(ljoybut), &alpha, true);
     alpha.a = 189;
     ss_canvas_drawcircle(renderer, &(rjoybut), &alpha, true);
-
+*/
 
 //    ss_canvas_drawcircle(renderer, &ljoybut, &tcolor, true);
 
@@ -460,50 +530,6 @@ int ss_menu_run(){
 //    ss_ps3_cvs_drawjoy(renderer, &rjoy, &tcolor, true, false, NULL, 0);
 
 //    ss_ps3_cvs_drawjoy(renderer, &rjoy, NULL, true, true, &colors, 3);
-
-
-
-/*
- these are x
-0, 0, 286
-0, 1, 357
-0, 2, 357
-
- these are x
-1, 0, 286
-1, 1, 357
-1, 2, 315
-
- these are x
-2, 0, 286
-2, 1, 315
-2, 2, 257
-
- these are x
-3, 0, 286
-3, 1, 257
-3, 2, 215
-
- these are x
-4, 0, 286
-4, 1, 215
-4, 2, 215
-
- these are x
-5, 0, 286
-5, 1, 215
-5, 2, 257
-
- these are x
-6, 0, 286
-6, 1, 257
-6, 2, 315
-
- these are x
-7, 0, 286
-7, 1, 315
-7, 2, 357
-*/
 
 
     /*
@@ -574,7 +600,6 @@ int ss_menu_run(){
 //    filledPieRGBA(renderer, 300, 300, 100, 0, 90, 13, 59, 95, 255);
 //    filledCircleRGBA(renderer, 300, 300, 50, 255, 255, 255, 255);
 //    aacircleRGBA(renderer, 300, 300, 50, 255, 255, 255, 255);
-    SDL_RenderPresent(renderer);
 
 /*
     // first lets just grab the ps3 controller manually
@@ -597,12 +622,128 @@ int ss_menu_run(){
 //    controller = SDL_GameControllerOpen(0);
     printf("que %i\n", SDL_GameControllerEventState(SDL_QUERY));
     */
+
+
+//    SDL_RenderPresent(renderer);
     SDL_Event event; // event handler
 
     // event handling loop
     while (!quit){
         // only do things when we have an event
-        while (SDL_PollEvent(&event)){
+        if (SDL_PollEvent(&event)){
+
+            switch (event.type){
+                case SDL_QUIT:
+                {
+                    quit = 1;
+                    break;
+                }
+                case SDL_MOUSEBUTTONDOWN:
+                {
+                    /*
+                     * circle button radius 25
+                     * A: (627,492)
+                     * X: (562, 434)
+                     */
+                    printf("(%i, %i)\n", event.button.x, event.button.y);
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+        }
+/*
+        // retreive sentstat value
+        if (ph_getreset(&sentstat_mutex, &sentstat) == 1){
+            // lock the stats, process colors, then unlock and draw
+            pthread_mutex_lock(&stats_mutex);
+
+            // now its safe to process stats
+            ss_colorizealpha(&statcolors, &stats);
+
+            pthread_mutex_unlock(&stats_mutex);
+
+            SDL_RenderClear(renderer);
+            SDL_RenderCopy(renderer, bitmapTex, NULL, &outtex);
+            // and draw
+            if (ss_ps3_cvs_drawps3(renderer, &statcolors, true) == SS_RETURN_FAILURE){
+                printf("fail to draw\n");
+            
+            }
+
+            // and update sdl
+            SDL_RenderPresent(renderer);
+        }*/
+
+    }
+
+   
+    // tell other thread that we are done
+    ph_set(&end_mutex, &end, 1);
+
+    pthread_join(controller_thread, &status);
+
+    // TEMP TODO (needed incase of resolution mishaps
+    // manuall set values
+/*
+    stats.buttons.press_times_ms[0]     = 221494;
+    stats.buttons.press_times_ms[1]     = 9419;
+    stats.buttons.press_times_ms[2]     = 44498;
+    stats.buttons.press_times_ms[3]     = 996;
+    stats.buttons.press_times_ms[4]     = 3739;
+    stats.buttons.press_times_ms[5]     = 3312;
+    stats.buttons.press_times_ms[6]     = 9806;
+    stats.buttons.press_times_ms[7]     = 99;
+    stats.buttons.press_times_ms[8]     = 817;
+    stats.buttons.press_times_ms[9]     = 3844;
+    stats.buttons.press_times_ms[10]    = 7583;
+    stats.buttons.press_times_ms[11]    = 6586;
+    stats.buttons.press_times_ms[12]    = 4683;
+    stats.buttons.press_times_ms[13]    = 6389;
+    stats.buttons.largest               = 221494;
+    stats.joystick_left.data.pizza[0]   = 1515381;
+    stats.joystick_left.data.pizza[7]   = 28093;
+    stats.joystick_left.data.pizza[6]   = 13977;
+    stats.joystick_left.data.pizza[5]   = 36687;
+    stats.joystick_left.data.pizza[4]   = 774962;
+    stats.joystick_left.data.pizza[3]   = 27218;
+    stats.joystick_left.data.pizza[2]   = 18946;
+    stats.joystick_left.data.pizza[1]   = 28694;
+    stats.joystick_left.data.largest    = 1515381;
+    stats.joystick_right.data.pizza[0]  = 749160;
+    stats.joystick_right.data.pizza[7]  = 437;
+    stats.joystick_right.data.pizza[6]  = 1126;
+    stats.joystick_right.data.pizza[5]  = 890;
+    stats.joystick_right.data.pizza[4]  = 3374;
+    stats.joystick_right.data.pizza[3]  = 19;
+    stats.joystick_right.data.pizza[2]  = 1876;
+    stats.joystick_right.data.pizza[1]  = 0;
+    stats.joystick_right.data.largest   = 749160;
+    stats.trigger_left.press_time       = 230272;
+    stats.trigger_right.press_time      = 2454525;
+
+    ss_print_stats(&stats);
+  */
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, bitmapTex, NULL, &outtex);
+
+    // ready to process
+    ss_colorizealpha(&statcolors, &stats);
+    if (ss_ps3_cvs_drawps3(renderer, &statcolors, true) == SS_RETURN_FAILURE){
+        printf("fail to draw\n");
+    }
+
+    // and update sdl
+    SDL_RenderPresent(renderer);
+
+    quit = 0;
+
+    // event handling loop
+    while (!quit){
+        // only do things when we have an event
+        if (SDL_PollEvent(&event)){
 
             switch (event.type){
                 case SDL_QUIT:
@@ -612,14 +753,28 @@ int ss_menu_run(){
                 }
                 case SDL_KEYDOWN:
                 {
-                    // spacebar stuff
-                    switch (event.key.keysym.sym){
+                    // hit space, do a rerender
+                    switch(event.key.keysym.sym){
                         case SDLK_SPACE:
                         {
-                            quit = 1;
+                            SDL_RenderClear(renderer);
+                            SDL_RenderCopy(renderer, bitmapTex, NULL, &outtex);
+
+                            // ready to process
+                            ss_colorizealpha(&statcolors, &stats);
+                            if (ss_ps3_cvs_drawps3(renderer, &statcolors, true) == SS_RETURN_FAILURE){
+                                printf("fail to draw\n");
+                            }
+
+
+                            SDL_RenderPresent(renderer);
+                            printf("attempted rerender\n");
                             break;
                         }
-                        default: break;
+                        default:
+                        {
+                            break;
+                        }
                     }
                     break;
                 }
@@ -641,12 +796,12 @@ int ss_menu_run(){
         }
     }
 
-    
-    ph_set(&end_mutex, &end, 1);
-
-    pthread_join(controller_thread, &status);
+    ss_destroy_generic_controller_stats(&stats);
 
     pthread_mutex_destroy(&end_mutex);
+    pthread_mutex_destroy(&sentstat_mutex);
+    pthread_mutex_destroy(&stats_mutex);
+//    pthread_cond_destroy(&sentstat_cond);
     pthread_attr_destroy(&join);
 
     // quit

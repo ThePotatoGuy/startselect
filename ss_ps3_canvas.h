@@ -12,7 +12,15 @@
 #include "SDL2/SDL.h"
 
 #include "ss_canvas.h"
+#include "ss_canvas_color.h"
 #include "ss_shape.h"
+
+#include "ss_ps3_statcolors.h"
+
+//  CONSTANTS   ===============================================================
+
+// 14 buttons, 2 triggers and 2 joysticks
+#define SS_PS3_SHAPE_SIZE 18
 
 //  FUNCTIONS   ===============================================================
 
@@ -41,20 +49,35 @@ int ss_ps3_cvs_drawdpad(
  * IN:
  *  @param renderer - the SDL_Renderer to draw on
  *  @param joystick - the dimensions of teh joystick to draw
- *  @param color - the color of the joystick to draw 
+ *  @param color - the colors of the joystick slices to draw
  *  @param add_aa - true draws the joystick with AA, false does not
  *
  * OUT:
  *  @returns SS_RETURN_SUCCESS on success, SS_RETURN_FAILURe otherwise
  */
-/*
 int ss_ps3_cvs_drawjoy(
         SDL_Renderer *renderer,
         const ss_ps3_joystick *joystick,
-        const ss_canvas_color *color,
-        bool add_aa,
+        const ss_canvas_color (*color)[SS_PS3_JOY_SIZE],
+        bool add_aa
 );
-*/
+
+/*
+ * Draws all the shapes of a PS3 using the given colors array
+ *
+ * IN:
+ *  @param renderer - the SDL_Rendeer to draw on
+ *  @param colors - the colors to draw with
+ *  @param add_aa - true draws the ps3 shapes with AA, false does not
+ *
+ * OUT:
+ *  @returns SS_RETURN_SUCCESS on success, SS_RETURN_FAILURE otherwise
+ */
+int ss_ps3_cvs_drawps3(
+        SDL_Renderer *renderer,
+        const ss_ps3_colors *colors,
+        bool add_aa
+);
 
 /*
  * Draws a PS3 trigger using the given trigger onto the given renderer

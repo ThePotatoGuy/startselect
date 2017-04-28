@@ -10,25 +10,42 @@
 #include "SDL2/SDL.h"
 
 #include "ss_canvas.h"
+#include "ss_canvas_color.h"
 #include "ss_constants.h"
 #include "ss_gc_constants.h"
 #include "ss_shape.h"
 
 #include "ss_ps3_constants.h"
+#include "ss_ps3_statcolors.h"
 
 #include "ss_ps3_canvas.h"
-
-//  CONSTANTS   ===============================================================
-
-// 14 buttons, 2 triggers and 2 joysticks
-#define PS3_SHAPE_SIZE 18
 
 //  VARIABLES   ===============================================================
 
 // shape data 
-static ss_canvas_shape ps3_shapes[PS3_SHAPE_SIZE];
+static ss_canvas_shape ps3_shapes[SS_PS3_SHAPE_SIZE];
 
 //  STATIC FUNCTIONS    =======================================================
+
+/*
+ * Draws a PS3 thumb stick
+ * This is needed because thumb stick needs a background color
+ *
+ * IN:
+ *  @param renderer - the SDL_Renderer to draw on
+ *  @param thumb - the dimensions of the thumb stick to draw
+ *  @param color - the colors of the thumb stick to draw
+ *  @param add_aa - true draws the thumb stick with AA, false does not
+ *
+ * OUT:
+ *  @returns SS_RETURN_SUCCESS on success, SS_RETURN_FAILURE otherwise
+ */
+static int draw_ps3_thumb(
+        SDL_Renderer *renderer,
+        const ss_circle *thumb,
+        const ss_canvas_color *color,
+        bool add_aa
+);
 
 /*
  * Setups the ps3 circle-shaped button shapes
@@ -88,25 +105,160 @@ int ss_ps3_cvs_drawdpad(
             color, add_aa);
 } // ss_ps3_cvs_drawdpad
 
-/*
 int ss_ps3_cvs_drawjoy(
         SDL_Renderer *renderer,
         const ss_ps3_joystick *joystick,
-        const ss_canvas_color *color,
-        bool add_aa,
+        const ss_canvas_color (*color)[SS_PS3_JOY_SIZE],
+        bool add_aa
 ){
 
     for (int index = 0; index < SS_PS3_JOY_SIZE; index++){
-        if (ss_canvas
-        if (ss_canvas_drawslice(renderer, &(joystick->slices[index]),
-                    color, add_aa) == SS_RETURN_FAILURE){
-                return SS_RETURN_FAILURE;
+        if (ss_canvas_drawtri(
+                    renderer, 
+                    &(joystick->slices[index]),
+                    &((*color)[index]),
+                    add_aa
+            ) == SS_RETURN_FAILURE){
+
+            return SS_RETURN_FAILURE;
         }
     }
 
     return SS_RETURN_SUCCESS;
 } // ss_ps3_cvs_drawjoy
-*/
+
+int ss_ps3_cvs_drawps3(
+        SDL_Renderer *renderer,
+        const ss_ps3_colors *colors,
+        bool add_aa
+){
+
+    if ( 
+            // circular buttons
+            ss_canvas_drawcircle(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_A].circle),
+                    &(colors->buttons[SS_BUTTON_A]), 
+                    add_aa
+                ) == SS_RETURN_FAILURE
+            || ss_canvas_drawcircle(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_B].circle), 
+                    &(colors->buttons[SS_BUTTON_B]), 
+                    add_aa
+                ) == SS_RETURN_FAILURE
+            || ss_canvas_drawcircle(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_X].circle), 
+                    &(colors->buttons[SS_BUTTON_X]), 
+                    add_aa
+                ) == SS_RETURN_FAILURE
+            || ss_canvas_drawcircle(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_Y].circle), 
+                    &(colors->buttons[SS_BUTTON_Y]), 
+                    add_aa
+                ) == SS_RETURN_FAILURE
+            
+            // dpads
+            || ss_ps3_cvs_drawdpad(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_DPAD_UP].ps3_dpad),
+                    &(colors->buttons[SS_BUTTON_DPAD_UP]), 
+                    add_aa
+                ) == SS_RETURN_FAILURE
+            || ss_ps3_cvs_drawdpad(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_DPAD_DOWN].ps3_dpad),
+                    &(colors->buttons[SS_BUTTON_DPAD_DOWN]), 
+                    add_aa
+                ) == SS_RETURN_FAILURE
+            || ss_ps3_cvs_drawdpad(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_DPAD_LEFT].ps3_dpad),
+                    &(colors->buttons[SS_BUTTON_DPAD_LEFT]), 
+                    add_aa
+                ) == SS_RETURN_FAILURE
+            || ss_ps3_cvs_drawdpad(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_DPAD_RIGHT].ps3_dpad),
+                    &(colors->buttons[SS_BUTTON_DPAD_RIGHT]), 
+                    add_aa
+                ) == SS_RETURN_FAILURE
+
+            // rectangular shapes
+            || ss_canvas_drawrect(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_BACK].rect),
+                    &(colors->buttons[SS_BUTTON_BACK])
+                ) == SS_RETURN_FAILURE
+            || ss_canvas_drawrect(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_LEFT_SHOULDER].rect),
+                    &(colors->buttons[SS_BUTTON_LEFT_SHOULDER])
+                ) == SS_RETURN_FAILURE
+            || ss_canvas_drawrect(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_RIGHT_SHOULDER].rect),
+                    &(colors->buttons[SS_BUTTON_RIGHT_SHOULDER])
+                ) == SS_RETURN_FAILURE
+
+            // triangle shaped buttons
+            || ss_canvas_drawtri(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_START].triangle),
+                    &(colors->buttons[SS_BUTTON_START]),
+                    add_aa
+                ) == SS_RETURN_FAILURE
+
+            // triggers
+             || ss_ps3_cvs_drawtrig(
+                    renderer, 
+                    &(ps3_shapes[SS_TRIGGER_LEFT].ps3_trigger),
+                    &(colors->trigger_left), 
+                    add_aa
+                ) == SS_RETURN_FAILURE
+             || ss_ps3_cvs_drawtrig(
+                    renderer, 
+                    &(ps3_shapes[SS_TRIGGER_RIGHT].ps3_trigger),
+                    &(colors->trigger_right), 
+                    add_aa
+                ) == SS_RETURN_FAILURE
+
+             // joysticks
+             || ss_ps3_cvs_drawjoy(
+                    renderer,
+                    &(ps3_shapes[SS_JOYSTICK_LEFT].ps3_joystick),
+                    &(colors->joystick_left),
+                    add_aa
+                ) == SS_RETURN_FAILURE
+             || ss_ps3_cvs_drawjoy(
+                    renderer,
+                    &(ps3_shapes[SS_JOYSTICK_RIGHT].ps3_joystick),
+                    &(colors->joystick_right),
+                    add_aa
+                ) == SS_RETURN_FAILURE
+
+             // thumb sticks
+            || draw_ps3_thumb(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_LEFT_THUMB].circle), 
+                    &(colors->buttons[SS_BUTTON_LEFT_THUMB]), 
+                    add_aa
+                ) == SS_RETURN_FAILURE
+            || draw_ps3_thumb(
+                    renderer, 
+                    &(ps3_shapes[SS_BUTTON_RIGHT_THUMB].circle), 
+                    &(colors->buttons[SS_BUTTON_RIGHT_THUMB]), 
+                    add_aa
+                ) == SS_RETURN_FAILURE
+        ){
+
+        return SS_RETURN_FAILURE;
+    }
+
+    return SS_RETURN_SUCCESS;
+} // ss_ps3_cvs_drawps3
 
 int ss_ps3_cvs_drawtrig(
         SDL_Renderer *renderer,
@@ -117,6 +269,8 @@ int ss_ps3_cvs_drawtrig(
 
     if (ss_canvas_drawellip(renderer, &(trigger->tip), color, 
                 add_aa) == SS_RETURN_FAILURE
+            || ss_canvas_drawrect(renderer, &(trigger->body),
+                &SS_CLR_BLACK) == SS_RETURN_FAILURE
             || ss_canvas_drawrect(renderer, &(trigger->body), 
                 color) == SS_RETURN_FAILURE){
         return SS_RETURN_FAILURE;
@@ -132,6 +286,32 @@ int ss_ps3_cvs_init(){
 } // ss_ps3_cvs_init
 
 //  STATIC IMPLEMENTATION   ===================================================
+
+static int draw_ps3_thumb(
+        SDL_Renderer *renderer,
+        const ss_circle *thumb,
+        const ss_canvas_color *color,
+        bool add_aa
+){
+    if (ss_canvas_drawcircle(
+                renderer,
+                thumb,
+                &SS_CLR_BLACK,
+                add_aa
+                ) == SS_RETURN_FAILURE
+            || ss_canvas_drawcircle(
+                    renderer,
+                    thumb,
+                    color,
+                    add_aa
+                ) == SS_RETURN_FAILURE
+        ){
+
+        return SS_RETURN_FAILURE;
+    }
+
+    return SS_RETURN_SUCCESS;
+} // draw_ps3_thumb
 
 static void setup_ps3_circles(){
 
@@ -277,7 +457,7 @@ static void setup_ps3_triggers(){
     ps3_shapes[SS_TRIGGER_LEFT].ps3_trigger.body.w  = SS_PS3_LTR_B_W;
     ps3_shapes[SS_TRIGGER_LEFT].ps3_trigger.body.h  = SS_PS3_LTR_B_H;
     ps3_shapes[SS_TRIGGER_LEFT].ps3_trigger.tip.x   = SS_PS3_LTR_T_X;
-    ps3_shapes[SS_TRIGGER_LEFT].ps3_trigger.tip.x   = SS_PS3_LTR_T_Y;
+    ps3_shapes[SS_TRIGGER_LEFT].ps3_trigger.tip.y   = SS_PS3_LTR_T_Y;
     ps3_shapes[SS_TRIGGER_LEFT].ps3_trigger.tip.rx  = SS_PS3_LTR_T_RX;
     ps3_shapes[SS_TRIGGER_LEFT].ps3_trigger.tip.ry  = SS_PS3_LTR_T_RY;
 
@@ -287,7 +467,7 @@ static void setup_ps3_triggers(){
     ps3_shapes[SS_TRIGGER_RIGHT].ps3_trigger.body.w  = SS_PS3_RTR_B_W;
     ps3_shapes[SS_TRIGGER_RIGHT].ps3_trigger.body.h  = SS_PS3_RTR_B_H;
     ps3_shapes[SS_TRIGGER_RIGHT].ps3_trigger.tip.x   = SS_PS3_RTR_T_X;
-    ps3_shapes[SS_TRIGGER_RIGHT].ps3_trigger.tip.x   = SS_PS3_RTR_T_Y;
+    ps3_shapes[SS_TRIGGER_RIGHT].ps3_trigger.tip.y   = SS_PS3_RTR_T_Y;
     ps3_shapes[SS_TRIGGER_RIGHT].ps3_trigger.tip.rx  = SS_PS3_RTR_T_RX;
     ps3_shapes[SS_TRIGGER_RIGHT].ps3_trigger.tip.ry  = SS_PS3_RTR_T_RY;
 

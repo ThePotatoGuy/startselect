@@ -111,6 +111,18 @@ int ph_get(pthread_mutex_t *mutex, int *variable){
     return var;
 } /* ph_get */
 
+int ph_getreset(pthread_mutex_t *mutex, int *variable){
+    int var;
+
+    // lock access to variable, then get and reset
+    pthread_mutex_lock(mutex);
+    var = *variable;
+    *variable = 0;
+    pthread_mutex_unlock(mutex);
+
+    return var;
+} // ph_getreset
+
 void ph_set(pthread_mutex_t *mutex, int *variable, int value){
     /* lock the variable, then set it */
     pthread_mutex_lock(mutex);

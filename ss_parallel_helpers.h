@@ -145,6 +145,26 @@ void ph_broadcast_wait(
  */
 int ph_get(pthread_mutex_t *mutex, int *variable);
 
+/*
+ * Gets the value of a variable that may potentially be a race condition by
+ * performing mutex locks before reading the condition. Returns the value of 
+ * the variable and sets the variable to 0
+ *
+ * Assumes all variables are initalized
+ *
+ * pthread methods used:
+ *  pthread_mutex_lock
+ *  pthread_mutex_unlock
+ *
+ * IN:
+ *  @param mutex        - pointer to pthread_mutex for this variable
+ *  @param variable     - pointer to variable to get (and reset)
+ *
+ * OUT:
+ *  @returns the value of the variable (before reset)
+ */
+int ph_getreset(pthread_mutex_t *mutex, int *variable);
+
 /**
  * Sets the variable to the given value, performing mutex locks before doing so
  *
