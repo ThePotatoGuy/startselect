@@ -38,6 +38,7 @@
 #include "ss_shape.h"
 #include "ss_statprocessor.h"
 #include "ss_stats.h"
+#include "ss_window_constants.h"
 
 #include "ss_ps3_canvas.h"
 #include "ss_ps3_constants.h"
@@ -217,7 +218,14 @@ int ss_menu_run(){
     SDL_Init(0);
     SDL_InitSubSystem(SDL_INIT_VIDEO); // init video so we can display a window
 
-    window = SDL_CreateWindow("Quit",100,100,814,814,0);
+    window = SDL_CreateWindow(
+            SS_WINDOWNAME, 
+            SDL_WINDOWPOS_CENTERED,
+            SDL_WINDOWPOS_CENTERED,
+            SS_WINDOW_WT, 
+            SS_WINDOW_HT,
+            0
+    );
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
   
     if (window == NULL){
