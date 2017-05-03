@@ -102,6 +102,38 @@ static ss_statnum calculate_time_diff(
 );
 
 /*
+ * Clears the given button stats struct
+ *
+ * OUT:
+ *  @param stats - cleared button stats data
+ */
+static void clear_buttons(ss_button_stats *stats);
+
+/*
+ * Clears the given joystick grid struct
+ *
+ * OUT:
+ *  @param grid - cleared joystick grid data
+ */
+static void clear_joygrid(ss_joystick_grid *grid);
+
+/*
+ * Clears the given joystick stats struct
+ *
+ * OUT:
+ *  @param stats - cleared joystick stats data
+ */
+static void clear_joystick(ss_joystick_stats *stats);
+
+/*
+ * Clears the given trigger stats struct
+ *
+ * OUT:
+ *  @param stats - cleared trigger stats dta
+ */
+static void clear_trigger(ss_trigger_stats *stats);
+
+/*
  * Collapses the given degree into an appropriate pizza slice of the given
  * grid.
  *
@@ -246,6 +278,54 @@ static void destroy_joystick_grid(ss_joystick_grid *grid);
 static void destroy_joystick_stats(ss_joystick_stats *stats);
 
 /*
+ * Deactivates all active button inputs and properly updates stats
+ *
+ * IN:
+ *  @param poll - end time
+ *  @param freq - timer frequency
+ *
+ * OUT:
+ *  @param stats - inputs are inactive 
+ */
+static void finish_buttons(
+        ss_button_stats *stats,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
+);
+
+/*
+ * Deactivates joystick and properly update stats
+ *
+ * IN:
+ *  @param poll - end time
+ *  @param freq - timer freq
+ *
+ * OUT:
+ *  @param stats - input is inactive
+ */
+static void finish_joystick(
+        ss_joystick_stats *stats,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
+);
+
+/*
+ * Deactivates trigger and properly updates stats
+ *
+ * IN:
+ *  @param poll - end time
+ *  @param freq - timer freq
+ *
+ * OUT:
+ *  @param stats - input is inactive
+ */
+static void finish_trigger(
+        ss_trigger_stats *stats,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
+);
+
+/*
  * Initializes the given button stats struct
  *
  * IN:
@@ -357,6 +437,24 @@ static void print_joystick_stats(ss_joystick_stats *stats);
 static void print_trigger_stats(ss_trigger_stats *stats);
 
 /*
+ * Processes the selected button's input stats
+ *
+ * IN:
+ *  @param button - index of the selected button to process
+ *  @param poll - the poll time of the input
+ *  @param freq - freq of timer
+ *
+ * OUT:
+ *  @param stats - button stats struct to save datat to
+ */
+static void process_button(
+        ss_button_stats *stats,
+        int button,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
+);
+
+/*
  * Process the ss_button_data input struct into the ss_button_stast struct
  *
  * IN:
@@ -370,6 +468,24 @@ static void print_trigger_stats(ss_trigger_stats *stats);
 static void process_button_stats(
         ss_button_stats *stats, 
         ss_button_data *input,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
+);
+
+/*
+ * Processes the selected joystick slice's input stats
+ *
+ * IN:
+ *  @param slice - index of the selected slice to process
+ *  @param poll - the poll time of the input
+ *  @param freq - freq of timer
+ *
+ * OUT:
+ *  @param stats - joystick stats struct to save data to
+ */
+static void process_joystick(
+        ss_joystick_stats *stats,
+        int slice,
         LARGE_INTEGER poll,
         LARGE_INTEGER freq
 );
@@ -389,6 +505,22 @@ static void process_button_stats(
 static void process_joystick_stats(
         ss_joystick_stats *stats,
         ss_joystick_data *joystick,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
+);
+
+/*
+ * Processes the selected trigger's input stats
+ *
+ * IN:
+ *  @param poll - the poll time of the input
+ *  @param freq - freq of timer
+ *
+ * OUT:
+ *  @param stats - the trigger stats struct to save data to
+ */
+static void process_trigger(
+        ss_trigger_stats *stats,
         LARGE_INTEGER poll,
         LARGE_INTEGER freq
 );
@@ -519,6 +651,18 @@ void ss_process_stats(
             input->poll, input->freq);
 } // ss_process_stats
 
+void ss_stats_clear(ss_generic_controller_stats *stats){
+
+    clear_buttons(&(stats->buttons));
+
+    clear_joystick(&(stats->joystick_left));
+    clear_joystick(&(stats->joystick_right));
+
+    clear_trigger(&(stats->trigger_left));
+    clear_trigger(&(stats->trigger_right));
+
+} // ss_stats_clear
+
 void ss_stats_copy(
         ss_generic_controller_stats *dest,
         const ss_generic_controller_stats *src,
@@ -532,6 +676,23 @@ void ss_stats_copy(
     copy_trigger(&(dest->trigger_left), &(src->trigger_left), drawonly);
     copy_trigger(&(dest->trigger_right), &(src->trigger_right), drawonly);
 } // ss_stats_copy
+
+void ss_stats_finishstate(ss_generic_controller_stats *stats){
+
+    LARGE_INTEGER poll, freq;
+
+    QueryPerformanceCounter(&poll);
+    QueryPerformanceFrequency(&freq);
+
+    finish_buttons(&(stats->buttons), poll, freq);
+
+    finish_joystick(&(stats->joystick_left), poll, freq);
+    finish_joystick(&(stats->joystick_right), poll, freq);
+
+    finish_trigger(&(stats->trigger_left), poll, freq);
+    finish_trigger(&(stats->trigger_right), poll, freq);
+
+} // ss_stats_finishstate
 
 int ss_stats_read(
         ss_generic_controller_stats *stats,
@@ -550,19 +711,19 @@ int ss_stats_read(
     file = fopen(filepath, STAT_READ);
 
     if (file == NULL){
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     // ensure the read in file has ps3
     if (fgets(buffer, BUFFER_SIZE, file) == NULL){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     // check for PS3 header
     if (strncmp(buffer, "PS3", 3) != 0){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     // now start button reads
@@ -571,17 +732,17 @@ int ss_stats_read(
         // grab line
         if (fgets(buffer, BUFFER_SIZE, file) == NULL){
             fclose(file);
-            return AES_RETURN_FAILURE;
+            return SS_RETURN_FAILURE;
         }
 
         // parse line
-        rc = sscanf(buffer, FILE_STAT_BUT_RD. &id, &prscts, &prstim);
+        rc = sscanf(buffer, FILE_STAT_BUT_RD, &id, &prscts, &prstim);
 
         // expecting 3 arguments
         // also making sure index and id match
         if (rc != 3 || id != index){
             fclose(file);
-            return AES_RETURN_FAILURE;
+            return SS_RETURN_FAILURE;
         }
 
         stats->buttons.press_counts[index] = prscts;
@@ -594,7 +755,7 @@ int ss_stats_read(
     // left trigger
     if (fgets(buffer, BUFFER_SIZE, file) == NULL){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     // parse line
@@ -602,7 +763,7 @@ int ss_stats_read(
 
     if (rc != 3 || id != SS_TRIGGER_LEFT){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     // save data
@@ -612,7 +773,7 @@ int ss_stats_read(
     // right trigger
     if (fgets(buffer, BUFFER_SIZE, file) == NULL){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     // parse line
@@ -620,7 +781,7 @@ int ss_stats_read(
 
     if (rc != 3 || id != SS_TRIGGER_RIGHT){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     // save data
@@ -631,7 +792,7 @@ int ss_stats_read(
     // left joystick
     if (fgets(buffer, BUFFER_SIZE, file) == NULL){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     // tokenize
@@ -642,7 +803,7 @@ int ss_stats_read(
 
     if (rc != 1 || id != SS_JOYSTICK_LEFT){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     // now begin loop for slices
@@ -653,7 +814,7 @@ int ss_stats_read(
 
         if (token == NULL){
             fclose(file);
-            return AES_RETURN_FAILURE;
+            return SS_RETURN_FAILURE;
         }
 
         // parse token
@@ -661,7 +822,7 @@ int ss_stats_read(
 
         if (rc != 1){
             fclose(file);
-            return AES_RETURN_FAILURE;
+            return SS_RETURN_FAILURE;
         }
 
         stats->joystick_left.data.pizza[index] = prstim;
@@ -672,7 +833,7 @@ int ss_stats_read(
     // right joystick
     if (fgets(buffer, BUFFER_SIZE, file) == NULL){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     token = strtok(buffer, TOK_DLM);
@@ -682,7 +843,7 @@ int ss_stats_read(
 
     if (rc != 1 || id != SS_JOYSTICK_RIGHT){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     // now begin loop for slices
@@ -693,7 +854,7 @@ int ss_stats_read(
 
         if (token == NULL){
             fclose(file);
-            return AES_RETURN_FAILURE;
+            return SS_RETURN_FAILURE;
         }
 
         // parse token
@@ -701,7 +862,7 @@ int ss_stats_read(
 
         if (rc != 1){
             fclose(file);
-            return AES_RETURN_FAILURE;
+            return SS_RETURN_FAILURE;
         }
 
         stats->joystick_right.data.pizza[index] = prstim;
@@ -711,7 +872,7 @@ int ss_stats_read(
 
     // successful reading
     fclose(file);
-    return AES_RETURN_SUCCESS;
+    return SS_RETURN_SUCCESS;
 
 } // ss_stats_read
 
@@ -725,13 +886,13 @@ int ss_stats_write(
     file = fopen(filepath, STAT_WRITE);
 
     if (file == NULL){
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     // write identiifier
     if (fprintf(file, "PS3\n") < 0){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     // now for the buttons
@@ -741,7 +902,7 @@ int ss_stats_write(
                     stats->buttons.press_times_ms[index]) 
                 < 0){
             fclose(file);
-            return AES_RETURN_FAILURE;
+            return SS_RETURN_FAILURE;
         }
     }
 
@@ -754,40 +915,40 @@ int ss_stats_write(
                 stats->trigger_right.press_time) < 0
             ){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     // joysticks
     if (fprintf(file, FILE_STAT_JOY_FMT, SS_JOYSTICK_LEFT) < 0){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     for (int index = 0; index < SLICE_COUNT; index++){
         if (fprintf(file, FILE_STAT_JOY_SFMT, 
                     stats->joystick_left.data.pizza[index]) < 0){
             fclose(file);
-            return AES_RETURN_FAILURE;
+            return SS_RETURN_FAILURE;
         }
     }
 
     if (fprintf(file, "\n") < 0
             || fprintf(file, FILE_STAT_JOY_FMT, SS_JOYSTICK_RIGHT) < 0){
         fclose(file);
-        return AES_RETURN_FAILURE;
+        return SS_RETURN_FAILURE;
     }
 
     for (int index = 0; index < SLICE_COUNT; index++){
         if (fprintf(file, FILE_STAT_JOY_SFMT,
                     stats->joystick_right.data.pizza[index]) < 0){
             fclose(file);
-            return AES_RETURN_FAILURE;
+            return SS_RETURN_FAILURE;
         }
     }
 
     // success in writing
     fclose(file);
-    return AES_RETURN_SUCCESS;
+    return SS_RETURN_SUCCESS;
 } // ss_stats_write
 
 //  STATIC IMPLEMENTATION   ===================================================
@@ -800,6 +961,38 @@ static ss_statnum calculate_time_diff(
 
     return ((double)(1000 * (end.QuadPart - start.QuadPart))) / freq.QuadPart;
 } // calcaulte_time_diff
+
+static void clear_buttons(ss_button_stats *stats){
+
+    for (int index = 0; index < stats->size; index++){
+        stats->press_times_ms[index] = 0;
+        stats->press_counts[index] = 0;
+        stats->states[index] = SS_INPUT_INACTIVE;
+    }
+
+    stats->largest = 0;
+} // clear_buttons
+
+static void clear_joygrid(ss_joystick_grid *grid){
+
+    for (int index = 0; index < grid->size; index++){
+        grid->pizza[index] = 0;
+    }
+
+    grid->largest = 0;
+    grid->prev = -1;
+} // clear_joygrid
+
+static void clear_joystick(ss_joystick_stats *stats){
+    stats->state = SS_INPUT_INACTIVE;
+    clear_joygrid(&(stats->data));
+} // clear_joystick
+
+static void clear_trigger(ss_trigger_stats *stats){
+    stats->press_time = 0;
+    stats->press_count = 0;
+    stats->state = SS_INPUT_INACTIVE;
+} // clear_trigger
 
 static SS_JOYSTICK_SLICE collapse_degree_to_slice(
         ss_joystick_grid *grid, 
@@ -856,7 +1049,7 @@ static void copy_joygrid(
     if (!drawonly){
         dest->offset = src->offset;
         dest->spacing = src->spacing;
-        dest->prev - src->prev;
+        dest->prev = src->prev;
     }
 
 } // copy_joygrid
@@ -917,6 +1110,69 @@ static void destroy_joystick_grid(ss_joystick_grid *grid){
 static void destroy_joystick_stats(ss_joystick_stats *stats){
     destroy_joystick_grid(&(stats->data));
 } // destroy_joystick_stats
+
+static void finish_buttons(
+        ss_button_stats *stats,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
+){
+    for (int index = 0; index < stats->size; index++){
+        switch (stats->states[index]){
+            case SS_INPUT_ACTIVE:
+            {
+                process_button(stats, index, poll, freq);
+                stats->states[index] = SS_INPUT_INACTIVE;
+                break;
+            }
+            default:
+            {
+                // this is good
+                break;
+            }
+        }
+    }
+} // finish_buttons
+
+static void finish_joystick(
+        ss_joystick_stats *stats,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
+){
+    switch (stats->state){
+        case SS_INPUT_ACTIVE:
+        {
+            process_joystick(stats, stats->data.prev, poll, freq);
+            stats->data.prev = -1;
+            stats->state = SS_INPUT_INACTIVE;
+            break;
+        }
+        default:
+        {
+            // this is good
+            break;
+        }
+    }
+} // finish_joystick
+
+static void finish_trigger(
+        ss_trigger_stats *stats,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
+){
+    switch (stats->state){
+        case SS_INPUT_ACTIVE:
+        {
+            process_trigger(stats, poll, freq);
+            stats->state = SS_INPUT_INACTIVE;
+            break;
+        }
+        default:
+        {
+            // this is good
+            break;
+        }
+    }
+} // finish_trigger
 
 static int init_button_stats(ss_button_stats *buttons){
     buttons->press_times_ms = malloc(SS_BUTTON_COUNT*sizeof(ss_statnum));
@@ -1062,6 +1318,25 @@ static void print_trigger_stats(ss_trigger_stats *stats){
             stats->press_count, stats->press_time);
 } // print_trigger_stats
 
+static void process_button(
+        ss_button_stats *stats,
+        int button,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
+){
+
+    // add value to press count
+    stats->press_counts[button] += 1;
+
+    // calculate time diff and add to press time
+    stats->press_times_ms[button] += calculate_time_diff(
+            stats->start_times[button], poll, freq);
+
+    // check if largest and set to largest (for drawing later)
+    set_largest_if_largest(&(stats->largest), stats->press_times_ms[button]);
+
+} // process_button
+
 static void process_button_stats(
         ss_button_stats *stats, 
         ss_button_data *input,
@@ -1089,17 +1364,9 @@ static void process_button_stats(
                     // the button was previously pressed, whcih means we just
                     // detected a release
                     stats->states[index] = SS_INPUT_INACTIVE;
+                    
+                    process_button(stats, index, poll, freq);
 
-                    // add value to press count
-                    stats->press_counts[index] += 1;
-
-                    // calculate time diff and add to press time
-                    stats->press_times_ms[index] += calculate_time_diff(
-                            stats->start_times[index], poll, freq);
-
-                    // check if largest and set to largest (for drawing later)
-                    set_largest_if_largest(&(stats->largest), 
-                            stats->press_times_ms[index]);
                     break;
                 }
                 default:
@@ -1111,6 +1378,22 @@ static void process_button_stats(
         }
     }
 } // process_button_stats
+
+static void process_joystick(
+        ss_joystick_stats *stats,
+        int slice,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
+){
+
+    // add timee
+    stats->data.pizza[slice] += 
+        calculate_time_diff(stats->start_time, poll, freq);
+
+    // set largest value if largest
+    set_largest_if_largest(&(stats->data.largest), stats->data.pizza[slice]);
+
+} // process_joystick
 
 static void process_joystick_stats(
         ss_joystick_stats *stats,
@@ -1161,12 +1444,7 @@ static void process_joystick_stats(
             if (stats->data.prev != new_slice){
                 // input location is different than previous
 
-                stats->data.pizza[stats->data.prev] +=
-                    calculate_time_diff(stats->start_time, poll, freq);
-
-                // set largest value if largest
-                set_largest_if_largest(&(stats->data.largest),
-                        stats->data.pizza[stats->data.prev]);
+                process_joystick(stats, stats->data.prev, poll, freq);
 
                 switch (input->state){
                     case SS_INPUT_ACTIVE:
@@ -1207,6 +1485,20 @@ static void process_joystick_stats(
     }
 } // process_joystick_stats
 
+static void process_trigger(
+        ss_trigger_stats *stats,
+        LARGE_INTEGER poll,
+        LARGE_INTEGER freq
+){
+
+    // add value to press count
+    stats->press_count += 1;
+
+    // calculate time diff and add to press time
+    stats->press_time += calculate_time_diff(stats->start_time, poll, freq);
+
+} // process_trigger
+
 static void process_trigger_stats(
         ss_trigger_stats *stats,
         ss_trigger_data *input,
@@ -1234,12 +1526,7 @@ static void process_trigger_stats(
                 // detected a release
                 stats->state = SS_INPUT_INACTIVE;
 
-                // add value to press count
-                stats->press_count += 1;
-
-                // calculate time diff and add to press time
-                stats->press_time += calculate_time_diff(
-                        stats->start_time, poll, freq);
+                process_trigger(stats, poll, freq);
 
                 break;
             }

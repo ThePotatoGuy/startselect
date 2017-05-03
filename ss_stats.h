@@ -13,6 +13,8 @@
 
 #include <windows.h>
 
+#include <stdbool.h>
+
 #include <inttypes.h>
 
 #include "ss_gamecontroller.h"
@@ -219,6 +221,14 @@ void ss_process_stats(
 );
 
 /*
+ * Clears the given stats struct of data
+ *
+ * OUT:
+ *  @param stats - stats cleared of data
+ */
+void ss_stats_clear(ss_generic_controller_stats *stats);
+
+/*
  * Performs a memcpy of the data (full copy) from src and stores it in dest
  *
  * Assumes dest is intialized
@@ -237,6 +247,16 @@ void ss_stats_copy(
 );
 
 /*
+ * Deactivates all active input states and properly records times. All inputs
+ * that are currently active (previously active) are turned inactive and 
+ * treated as if user stopped giving input
+ *
+ * OUT:
+ *  @param stats - input states all INACTIVE and stats updated
+ */
+void ss_stats_finishstate(ss_generic_controller_stats *stats);
+
+/*
  * Reads the given file into the given stats struct. 
  *
  * Assumes stats is intialized
@@ -247,7 +267,7 @@ void ss_stats_copy(
  *
  * OUT:
  *  @param stats - stats struct filled with data
- *  @returns AES_RETURN_SUCCESS on success, AES_RETURN_FAILURE otherwise
+ *  @returns SS_RETURN_SUCCESS on success, SS_RETURN_FAILURE otherwise
  */
 int ss_stats_read(
         ss_generic_controller_stats *stats,
@@ -262,7 +282,7 @@ int ss_stats_read(
  *  @param filepath - the path and name of file to save
  *
  * OUT:
- *  @returns AES_RETURN_SUCCESS on success, AES_RETURN_FAILURE otherwise
+ *  @returns SS_RETURN_SUCCESS on success, SS_RETURN_FAILURE otherwise
  */
 int ss_stats_write(
         const ss_generic_controller_stats *stats, 

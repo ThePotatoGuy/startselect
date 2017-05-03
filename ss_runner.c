@@ -6,14 +6,32 @@
  * Launches the program
  */
 
+//#define _WIN32_IE 0x0600
 
 #include <windows.h>
 #include <xinput.h>
+
+// extras
+/*#include <shlobj.h>
+#include <objbase.h>      // For COM headers
+#include <shobjidl.h>     // for IFileDialogEvents and IFileDialogControlEvents
+#include <shlwapi.h>
+#include <knownfolders.h> // for KnownFolder APIs/datatypes/function headers
+#include <propvarutil.h>  // for PROPVAR-related functions
+#include <propkey.h>      // for the Property key APIs/datatypes
+#include <propidl.h>      // for the Property System APIs
+#include <strsafe.h>      // for StringCchPrintfW
+#include <shtypes.h>      // for COMDLG_FILTERSPEC#include <shlobj.h>
+*///#include <new>
+
+//#pragma comment(lib, "comctl32.lib")
 
 #include <stdio.h>
 #include <wchar.h>
 #include <string.h>
 #include <stdlib.h>
+
+//#include <nfd.h>
 
 #include "SDL2/SDL.h"
 
@@ -31,7 +49,40 @@ extern ="C"
 #define MAX_STR 255
 
 int main(int argc, char *argv[]){
+/*
+	nfdchar_t *outPath = NULL;
+    nfdresult_t result = NFD_OpenDialog( NULL, NULL, &outPath );
+        
+    if ( result == NFD_OKAY ) {
+        puts("Success!");
+        puts(outPath);
+        free(outPath);
+    }
+    else if ( result == NFD_CANCEL ) {
+        puts("User pressed cancel.");
+    }
+    else {
+        printf("Error: %s\n", NFD_GetError() );
+    }
+*/
 
+    // testing filedialog
+    /*
+    char *buff;
+
+    const char * filters[2] = {"*.o", "*.stat"};
+
+    buff = tinyfd_saveFileDialog("saving file", "", 2, filters,
+            "test files");
+
+    if (buff != NULL){
+        printf("%s\n", buff);
+    }else{
+        printf("null");
+    }
+
+    return 0;
+*/
     /*
     SDL_Init(SDL_INIT_GAMECONTROLLER); // Event handling init implicity using Video
 

@@ -30,6 +30,8 @@
 
 #include "SDL2/SDL2_gfxPrimitives.h"
 
+#include "tinyfiledialogs.h"
+
 #include "ss_canvas.h"
 #include "ss_canvas_color.h"
 #include "ss_constants.h"
@@ -46,6 +48,14 @@
 
 #include "ss_menu.h"
 
+//  ENUMS   ===================================================================
+
+// recording state
+typedef enum {
+    ON,
+    OFF
+} RECORD_STATE;
+
 /*  TYPES   =================================================================*/
 
 /* temporary, holds mutex/cond/condition for quitting */
@@ -59,6 +69,15 @@ typedef struct{
     pthread_mutex_t     *sentstat_mutex;
 //    pthread_cond_t      *sentstat_cond;
     int                 *sentstat;
+
+    // start recording signal
+    pthread_mutex_t     *recstart_mutex;
+    pthread_cond_t      *recstart_cond;
+    int                 *recstart;
+
+    // stop recording signal
+    pthread_mutex_t     *recstop_mutex;
+    int                 *recstop;
 
     // stat data
     pthread_mutex_t     *stats_mutex;
@@ -86,7 +105,7 @@ void* ss_event_handling(void *thread_data){
 
     data = (ss_event_data*)thread_data;
 
-    pthread_mutex_lock(data->stats_mutex);
+    //pthread_mutex_lock(data->stats_mutex);
     stats = data->stats;
 
     quit = 0;
@@ -107,6 +126,8 @@ void* ss_event_handling(void *thread_data){
     long testtime = 0;
     QueryPerformanceFrequency(&pfreq);
     QueryPerformanceCounter(&pfcount);
+
+
     // event handlingloop
     while (!quit){
         
@@ -118,9 +139,9 @@ void* ss_event_handling(void *thread_data){
                 // differences occureed
                 ss_process_input(&controller, &(state.Gamepad));
 
-//                pthread_mutex_lock(data->stats_mutex);
+                pthread_mutex_lock(data->stats_mutex);
                 ss_process_stats(stats, &controller);
-//                pthread_mutex_unlock(data->stats_mutex);
+                pthread_mutex_unlock(data->stats_mutex);
 
 //                ph_set(data->sentstat_mutex, data->sentstat, 1);
                 
@@ -142,13 +163,22 @@ void* ss_event_handling(void *thread_data){
             printf("connection error\n");
         }
         
+        if (ph_getreset(data->recstop_mutex, data->recstop) == 1){
+            // okay time to stop recording
+            pthread_mutex_lock(data->stats_mutex);
+            ss_stats_finishstate(stats);
+            pthread_mutex_unlock(data->stats_mutex);
+            
+            // now wait for main thread to tell us to start again
+            ph_wait(data->recstart_mutex, data->recstart_cond, data->recstart);
+        }
 
         quit = ph_get(data->end_mutex, data->end);
     }
 
     ss_print_stats(stats);
     
-    pthread_mutex_unlock(data->stats_mutex);
+//    pthread_mutex_unlock(data->stats_mutex);
 
     ss_destroy_generic_controller(&controller);
     ss_destroy_gamecontroller();
@@ -161,15 +191,21 @@ int ss_menu_run(){
 
     ss_event_data data;
     pthread_mutex_t end_mutex, sentstat_mutex, stats_mutex;
+    pthread_mutex_t recstart_mutex, recstop_mutex;
     pthread_cond_t  sentstat_cond;
+    pthread_cond_t  recstart_cond;
     pthread_attr_t  join;
     int end, sentstat;
+    int recstart, recstop;
     void *status;
     ss_generic_controller_stats stats;
+    ss_generic_controller_stats workingcopy;
 
 
     if (ss_init_stats() == SS_RETURN_FAILURE
             || ss_init_generic_controller_stats(&stats) == SS_RETURN_FAILURE
+            || ss_init_generic_controller_stats(&workingcopy) 
+            == SS_RETURN_FAILURE
             || ss_ps3_cvs_init() == SS_RETURN_FAILURE
             
         ){
@@ -178,13 +214,21 @@ int ss_menu_run(){
         return SS_RETURN_FAILURE;
     }
 
+    // okay attempt read here
+    ss_stats_read(&stats, "statsout");
+
     pthread_mutex_init(&end_mutex, NULL);
     pthread_mutex_init(&sentstat_mutex, NULL);
     pthread_mutex_init(&stats_mutex, NULL);
+    pthread_mutex_init(&recstart_mutex, NULL);
+    pthread_mutex_init(&recstop_mutex, NULL);
+    pthread_cond_init(&recstart_cond, NULL);
 //    pthread_cond_init(&sentstat_cond, NULL);
     pthread_attr_init(&join);
     end = 0;
     sentstat = 0;
+    recstart = 0;
+    recstop = 0;
 
     status = NULL;
 
@@ -195,6 +239,11 @@ int ss_menu_run(){
     data.sentstat = &sentstat;
     data.stats_mutex = &stats_mutex;
     data.stats = &stats;
+    data.recstart_mutex = &recstart_mutex;
+    data.recstart_cond = &recstart_cond;
+    data.recstart = &recstart;
+    data.recstop_mutex = &recstop_mutex;
+    data.recstop = &recstop;
 
     pthread_attr_setdetachstate(&join, PTHREAD_CREATE_JOINABLE);
 
@@ -268,347 +317,6 @@ int ss_menu_run(){
 
     ss_ps3_stclr_fill(&statcolors, &maincolor, true);
 
-    /*
-    ss_canvas_color tcolor;
-    tcolor = SS_CLR_MDBLUE;
-
-    ss_canvas_color gcolor;
-    gcolor = SS_CLR_MDGREEN;
-
-    ss_canvas_color rcolor;
-    rcolor = SS_CLR_MDRED;
-
-    ss_canvas_color alpha;
-    alpha = tcolor;
-
-    ss_canvas_color colors[3];
-    colors[0] = tcolor;
-    colors[1] = gcolor;
-    colors[2] = rcolor;
-
-    ss_circle X;
-    X.x = SS_PS3_A_X;
-    X.y = SS_PS3_A_Y;
-    X.r = SS_PS3_A_R;
-
-    ss_circle Triag;
-    Triag.x = SS_PS3_Y_X;
-    Triag.y = SS_PS3_Y_Y;
-    Triag.r = SS_PS3_Y_R;
-
-    ss_circle square;
-    square.x = SS_PS3_X_X;
-    square.y = SS_PS3_X_Y;
-    square.r = SS_PS3_X_R;
-
-    ss_circle circ;
-    circ.x = SS_PS3_B_X;
-    circ.y = SS_PS3_B_Y;
-    circ.r = SS_PS3_B_R;
-
-    ss_ps3_dpad dright;
-    ss_ps3_dpad dleft;
-    ss_ps3_dpad dup;
-    ss_ps3_dpad ddown;
-    for (int i = 0; i < 5; i++){
-        dright.vx[i] = SS_PS3_RDP_VX[i];
-        dright.vy[i] = SS_PS3_RDP_VY[i];
-        dleft.vx[i] = SS_PS3_LDP_VX[i];
-        dleft.vy[i] = SS_PS3_LDP_VY[i];
-        dup.vx[i] = SS_PS3_UDP_VX[i];
-        dup.vy[i] = SS_PS3_UDP_VY[i];
-        ddown.vx[i] = SS_PS3_DDP_VX[i];
-        ddown.vy[i] = SS_PS3_DDP_VY[i];
-    }
-
-    SDL_Rect select;
-    select.x = SS_PS3_BCK_X;
-    select.y = SS_PS3_BCK_Y;
-    select.w = SS_PS3_BCK_W;
-    select.h = SS_PS3_BCK_H;
-
-    ss_triangle start;
-    for (int i = 0; i < 3; i ++){
-        start.vx[i] = SS_PS3_STRT_VX[i];
-        start.vy[i] = SS_PS3_STRT_VY[i];
-    }
-
-    SDL_Rect lshld;
-    lshld.x = SS_PS3_LSH_X;
-    lshld.y = SS_PS3_LSH_Y;
-    lshld.w = SS_PS3_LSH_W;
-    lshld.h = SS_PS3_LSH_H;
-
-    SDL_Rect rshld;
-    rshld.x = SS_PS3_RSH_X;
-    rshld.y = SS_PS3_RSH_Y;
-    rshld.w = SS_PS3_RSH_W;
-    rshld.h = SS_PS3_RSH_H;
-
-    ss_ps3_trigger ltrig;
-    ltrig.body.x    = SS_PS3_LTR_B_X;
-    ltrig.body.y    = SS_PS3_LTR_B_Y;
-    ltrig.body.w    = SS_PS3_LTR_B_W;
-    ltrig.body.h    = SS_PS3_LTR_B_H;
-    ltrig.tip.x     = SS_PS3_LTR_T_X;
-    ltrig.tip.y     = SS_PS3_LTR_T_Y;
-    ltrig.tip.rx    = SS_PS3_LTR_T_RX;
-    ltrig.tip.ry    = SS_PS3_LTR_T_RY;
-
-    ss_ps3_trigger rtrig;
-    rtrig.body.x    = SS_PS3_RTR_B_X;
-    rtrig.body.y    = SS_PS3_RTR_B_Y;
-    rtrig.body.w    = SS_PS3_RTR_B_W;
-    rtrig.body.h    = SS_PS3_RTR_B_H;
-    rtrig.tip.x     = SS_PS3_RTR_T_X;
-    rtrig.tip.y     = SS_PS3_RTR_T_Y;
-    rtrig.tip.rx    = SS_PS3_RTR_T_RX;
-    rtrig.tip.ry    = SS_PS3_RTR_T_RY;
-
-    ss_circle rjoybut;
-    rjoybut.x = SS_PS3_LTHM_X;
-    rjoybut.y = SS_PS3_LTHM_Y;
-    rjoybut.r = SS_PS3_LTHM_R;
-
-    ss_circle ljoybut;
-    ljoybut.x = SS_PS3_RTHM_X;
-    ljoybut.y = SS_PS3_RTHM_Y;
-    ljoybut.r = SS_PS3_RTHM_R;
-    // raduis 77
-
-    ss_ps3_joystick rjoy;
-    ss_ps3_joystick ljoy;
-
-    for (int i = 0; i < 8; i++){
-//        for (int q = 0; q < 3; q++){
-            memcpy(rjoy.slices[i].vx, SS_PS3_RJY_SLS_VX[i], 3*sizeof(Sint16));
-            memcpy(rjoy.slices[i].vy, SS_PS3_RJY_SLS_VY[i], 3*sizeof(Sint16));
-            memcpy(ljoy.slices[i].vx, SS_PS3_LJY_SLS_VX[i], 3*sizeof(Sint16));
-            memcpy(ljoy.slices[i].vy, SS_PS3_LJY_SLS_VY[i], 3*sizeof(Sint16));
-//        }
-    }
-    */
-
-/*
-    // 0
-    ss_slice sltest;
-    sltest.tip.x = 587;
-    sltest.tip.y = 542;
-    sltest.tip.rx = 6;
-    sltest.tip.ry = 29;
-    sltest.body.vx[0] = 516;
-    sltest.body.vy[0] = 542;
-    sltest.body.vx[1] = 587;
-    sltest.body.vy[1] = 513;
-    sltest.body.vx[2] = 587;
-    sltest.body.vy[2] = 571;
-
-    ss_ps3_joystick rjoy;
-    rjoy.slices[0] = sltest;
-
-    // 1
-    rjoy.slices[1].tip.x = 566;
-    rjoy.slices[1].tip.y = 592;
-    rjoy.slices[1].tip.rx = 6;
-    rjoy.slices[1].tip.ry = 29;
-    rjoy.slices[1].body.vx[0] = 516;
-    rjoy.slices[1].body.vy[0] = 542;
-    rjoy.slices[1].body.vx[1] = 587;
-    rjoy.slices[1].body.vy[1] = 571;
-    rjoy.slices[1].body.vx[2] = 545;
-    rjoy.slices[1].body.vy[2] = 613;
-
-    // 2
-    rjoy.slices[2].tip.x = 516;
-    rjoy.slices[2].tip.y = 613;
-    rjoy.slices[2].tip.rx = 29;
-    rjoy.slices[2].tip.ry = 6;
-    rjoy.slices[2].body.vx[0] = 516;
-    rjoy.slices[2].body.vy[0] = 542;
-    rjoy.slices[2].body.vx[1] = 545;
-    rjoy.slices[2].body.vy[1] = 613;
-    rjoy.slices[2].body.vx[2] = 487;
-    rjoy.slices[2].body.vy[2] = 613;
-
-    // 3
-    rjoy.slices[3].tip.x = 466;
-    rjoy.slices[3].tip.y = 592;
-    rjoy.slices[3].tip.rx = 6;
-    rjoy.slices[3].tip.ry = 29;
-    rjoy.slices[3].body.vx[0] = 516;
-    rjoy.slices[3].body.vy[0] = 542;
-    rjoy.slices[3].body.vx[1] = 487;
-    rjoy.slices[3].body.vy[1] = 613;
-    rjoy.slices[3].body.vx[2] = 445;
-    rjoy.slices[3].body.vy[2] = 571;
-
-    // 4
-    rjoy.slices[4].tip.x = 445;
-    rjoy.slices[4].tip.y = 542;
-    rjoy.slices[4].tip.rx = 6;
-    rjoy.slices[4].tip.ry = 29;
-    rjoy.slices[4].body.vx[0] = 516;
-    rjoy.slices[4].body.vy[0] = 542;
-    rjoy.slices[4].body.vx[1] = 445;
-    rjoy.slices[4].body.vy[1] = 571;
-    rjoy.slices[4].body.vx[2] = 445;
-    rjoy.slices[4].body.vy[2] = 513;
-
-    // 5
-    rjoy.slices[5].tip.x = 466;
-    rjoy.slices[5].tip.y = 492;
-    rjoy.slices[5].tip.rx = 6;
-    rjoy.slices[5].tip.ry = 29;
-    rjoy.slices[5].body.vx[0] = 516;
-    rjoy.slices[5].body.vy[0] = 542;
-    rjoy.slices[5].body.vx[1] = 445;
-    rjoy.slices[5].body.vy[1] = 513;
-    rjoy.slices[5].body.vx[2] = 487;
-    rjoy.slices[5].body.vy[2] = 471;
-
-    // 6
-    rjoy.slices[6].tip.x = 516;
-    rjoy.slices[6].tip.y = 471;
-    rjoy.slices[6].tip.rx = 29;
-    rjoy.slices[6].tip.ry = 6;
-    rjoy.slices[6].body.vx[0] = 516;
-    rjoy.slices[6].body.vy[0] = 542;
-    rjoy.slices[6].body.vx[1] = 487;
-    rjoy.slices[6].body.vy[1] = 471;
-    rjoy.slices[6].body.vx[2] = 545;
-    rjoy.slices[6].body.vy[2] = 471;
-
-    // 7
-    rjoy.slices[7].tip.x = 566;
-    rjoy.slices[7].tip.y = 492;
-    rjoy.slices[7].tip.rx = 6;
-    rjoy.slices[7].tip.ry = 29;
-    rjoy.slices[7].body.vx[0] = 516;
-    rjoy.slices[7].body.vy[0] = 542;
-    rjoy.slices[7].body.vx[1] = 545;
-    rjoy.slices[7].body.vy[1] = 471;
-    rjoy.slices[7].body.vx[2] = 587;
-    rjoy.slices[7].body.vy[2] = 513;
-*/
-    // joysizes x = 516
-    // y = 542
-    // r = 77
-/*
-    ss_canvas_drawcircle(renderer, &X, &tcolor, true);
-    ss_canvas_drawcircle(renderer, &Triag, &tcolor, true);
-    ss_canvas_drawcircle(renderer, &square, &tcolor, true);
-    ss_canvas_drawcircle(renderer, &circ, &tcolor, true);
-
-    ss_ps3_cvs_drawdpad(renderer, &dright, &tcolor, true);
-    ss_ps3_cvs_drawdpad(renderer, &ddown, &tcolor, true);
-    ss_ps3_cvs_drawdpad(renderer, &dleft, &tcolor, true);
-    ss_ps3_cvs_drawdpad(renderer, &dup, &tcolor, true);
-
-    ss_canvas_drawrect(renderer, &select, &tcolor);
-    ss_canvas_drawpoly(renderer, start.vx, start.vy, SS_TRI_SIZE, &tcolor,
-            true);
-
-    ss_canvas_drawrect(renderer, &lshld, &tcolor);
-    ss_canvas_drawrect(renderer, &rshld, &tcolor);
-
-    ss_ps3_cvs_drawtrig(renderer, &ltrig, &tcolor, true);
-    ss_ps3_cvs_drawtrig(renderer, &rtrig, &tcolor, true);
-
-    alpha.a = 45;
-    for (int i = 0; i < 8; i++){
-        ss_canvas_drawtri(renderer, &(rjoy.slices[i]), &alpha, true);
-        ss_canvas_drawtri(renderer, &(ljoy.slices[i]), &alpha, true);
-        alpha.a = (alpha.a + 45) % 255;
-    }
-
-
-	ss_canvas_drawcircle(renderer, &(ljoybut), &SS_CLR_BLACK, true);
-    ss_canvas_drawcircle(renderer, &(rjoybut), &SS_CLR_BLACK, true);
-
-    alpha.a = 213;
-    ss_canvas_drawcircle(renderer, &(ljoybut), &alpha, true);
-    alpha.a = 189;
-    ss_canvas_drawcircle(renderer, &(rjoybut), &alpha, true);
-*/
-
-//    ss_canvas_drawcircle(renderer, &ljoybut, &tcolor, true);
-
-//    ss_canvas_drawslice(renderer, &sltest, &tcolor, true);
-
-//    ss_ps3_cvs_drawjoy(renderer, &rjoy, &tcolor, true, false, NULL, 0);
-
-//    ss_ps3_cvs_drawjoy(renderer, &rjoy, NULL, true, true, &colors, 3);
-
-
-    /*
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, -23, 23, tcolor.r,
-            tcolor.g, tcolor.b, tcolor.a);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 23, 67, tcolor.r,
-            tcolor.g, tcolor.b, 180);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 67, 113, rcolor.r,
-            rcolor.g, rcolor.b, rcolor.a);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 113, 157, tcolor.r,
-            tcolor.g, tcolor.b, tcolor.a);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 157, 203, gcolor.r,
-            gcolor.g, gcolor.b, gcolor.a);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 203, 247, rcolor.r,
-            rcolor.g, rcolor.b, rcolor.a);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 247, 293, tcolor.r,
-            tcolor.g, tcolor.b, tcolor.a);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 293, 337, gcolor.r,
-            gcolor.g, gcolor.b, gcolor.a);
-*/
-
-    /*
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, -23, 23, tcolor.r,
-            tcolor.g, tcolor.b, 160);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 23, 67, tcolor.r,
-            tcolor.g, tcolor.b, 180);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 67, 113, tcolor.r,
-            tcolor.g, tcolor.b, 127);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 113, 157, tcolor.r,
-            tcolor.g, tcolor.b, 15);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 157, 203, tcolor.r,
-            tcolor.g, tcolor.b, 70);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 203, 247, tcolor.r,
-            tcolor.g, tcolor.b, 90);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 247, 293, tcolor.r,
-            tcolor.g, tcolor.b, 210);
-    filledPieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 293, 337, tcolor.r,
-            tcolor.g, tcolor.b, 189);
-
-    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, -23, 23, tcolor.r,
-            tcolor.g, tcolor.b, 160);
-    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 23, 67, tcolor.r,
-            tcolor.g, tcolor.b, 180);
-    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 67, 113, tcolor.r,
-            tcolor.g, tcolor.b, 127);
-    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 113, 157, tcolor.r,
-            tcolor.g, tcolor.b, 15);
-    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 157, 203, tcolor.r,
-            tcolor.g, tcolor.b, 70);
-    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 203, 247, tcolor.r,
-            tcolor.g, tcolor.b, 90);
-    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 247, 293, tcolor.r,
-            tcolor.g, tcolor.b, 210);
-    filledPieRGBA(renderer, rjoybut.x, rjoybut.y, rjoybut.r, 293, 337, tcolor.r,
-            tcolor.g, tcolor.b, 189);
-*/
-
-//    pieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, -22, 22, 0, 0, 0, 255);
-//    pieRGBA(renderer, ljoybut.x, ljoybut.y, ljoybut.r, 22, 67, 0, 0, 0, 255);
-
-
-//    filledCircleRGBA(renderer, 627, 492, 25, 13, 59, 95, 255);
-//    aacircleRGBA(renderer, 627, 492, 25, 13, 59, 95, 255);
-
-//    circleRGBA(renderer, 500, 492, 25, 13, 59, 95, 255);
-//    pieRGBA(renderer, 200, 200, 25, -22, 22, 13, 59, 95, 255);
-//    pieRGBA(renderer, 100, 200, 25, 0, 270, 13, 59, 95, 255);
-//    filledPieRGBA(renderer, 300, 300, 100, 0, 90, 13, 59, 95, 255);
-//    filledCircleRGBA(renderer, 300, 300, 50, 255, 255, 255, 255);
-//    aacircleRGBA(renderer, 300, 300, 50, 255, 255, 255, 255);
-
 /*
     // first lets just grab the ps3 controller manually
     SDL_GameController *controller = NULL;
@@ -634,7 +342,7 @@ int ss_menu_run(){
 
 //    SDL_RenderPresent(renderer);
     SDL_Event event; // event handler
-
+/*
     // event handling loop
     while (!quit){
         // only do things when we have an event
@@ -648,11 +356,6 @@ int ss_menu_run(){
                 }
                 case SDL_MOUSEBUTTONDOWN:
                 {
-                    /*
-                     * circle button radius 25
-                     * A: (627,492)
-                     * X: (562, 434)
-                     */
                     printf("(%i, %i)\n", event.button.x, event.button.y);
                     break;
                 }
@@ -662,37 +365,11 @@ int ss_menu_run(){
                 }
             }
         }
-/*
-        // retreive sentstat value
-        if (ph_getreset(&sentstat_mutex, &sentstat) == 1){
-            // lock the stats, process colors, then unlock and draw
-            pthread_mutex_lock(&stats_mutex);
-
-            // now its safe to process stats
-            ss_colorizealpha(&statcolors, &stats);
-
-            pthread_mutex_unlock(&stats_mutex);
-
-            SDL_RenderClear(renderer);
-            SDL_RenderCopy(renderer, bitmapTex, NULL, &outtex);
-            // and draw
-            if (ss_ps3_cvs_drawps3(renderer, &statcolors, true) == SS_RETURN_FAILURE){
-                printf("fail to draw\n");
-            
-            }
-
-            // and update sdl
-            SDL_RenderPresent(renderer);
-        }*/
 
     }
-
+*/
    
-    // tell other thread that we are done
-    ph_set(&end_mutex, &end, 1);
-
-    pthread_join(controller_thread, &status);
-
+ 
     // TEMP TODO (needed incase of resolution mishaps
     // manuall set values
 /*
@@ -748,6 +425,10 @@ int ss_menu_run(){
 
     quit = 0;
 
+    RECORD_STATE state;
+
+    state = ON;
+
     // event handling loop
     while (!quit){
         // only do things when we have an event
@@ -763,13 +444,20 @@ int ss_menu_run(){
                 {
                     // hit space, do a rerender
                     switch(event.key.keysym.sym){
-                        case SDLK_SPACE:
+                        case SDLK_g:
                         {
+                            // g to generate image
+
+                            pthread_mutex_lock(&stats_mutex);
+                            ss_stats_copy(&workingcopy, &stats, true);
+                            pthread_mutex_unlock(&stats_mutex);
+
+                            ss_colorizealpha(&statcolors, &stats);
+
                             SDL_RenderClear(renderer);
                             SDL_RenderCopy(renderer, bitmapTex, NULL, &outtex);
 
                             // ready to process
-                            ss_colorizealpha(&statcolors, &stats);
                             if (ss_ps3_cvs_drawps3(renderer, &statcolors, true) == SS_RETURN_FAILURE){
                                 printf("fail to draw\n");
                             }
@@ -777,6 +465,78 @@ int ss_menu_run(){
 
                             SDL_RenderPresent(renderer);
                             printf("attempted rerender\n");
+                            break;
+                        }
+                        case SDLK_SPACE:
+                        {
+                            // space to start and stop recording
+                            switch (state){
+                                case ON:
+                                {
+                                    // time to turn off
+                                    ph_set(&recstop_mutex, &recstop, 1);
+                                    state = OFF;
+
+                                    tinyfd_messageBox(
+                                            "Okay",
+                                            "Turning recording off",
+                                            "ok",
+                                            "info",
+                                            1);
+
+                                    break;
+                                }
+                                case OFF:
+                                {
+                                    // time to turn on
+
+                                    tinyfd_messageBox(
+                                            "Okay",
+                                            "Turning recording on",
+                                            "ok",
+                                            "info",
+                                            1);
+
+                                    ph_signal(&recstart_mutex, 
+                                            &recstart_cond, &recstart);
+                                    state = ON;
+                                    break;
+                                }
+                                default:
+                                {
+                                    // nothing
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                        case SDLK_c:
+                        {
+                            // clear data, but only do this if OFF
+                            switch (state){
+                                case ON:
+                                {
+                                    // we are on, dont clear, give warning
+                                    tinyfd_messageBox(
+                                            "Hold on",
+                                            "Please stop recording before clearing data",
+                                            "ok",
+                                            "warning",
+                                            1);
+                                    break;
+                                }
+                                case OFF:
+                                {
+                                    // we are off, clear data
+                                    // TODO tell other thread to clear
+                                    break;
+                                }
+                                default:
+                                {
+                                    // nothing
+                                    break;
+                                }
+                            }
                             break;
                         }
                         default:
@@ -804,11 +564,24 @@ int ss_menu_run(){
         }
     }
 
+   // tell other thread that we are done
+    ph_set(&end_mutex, &end, 1);
+
+    pthread_join(controller_thread, &status);
+
+
+    if (ss_stats_write(&stats, "statsout") == SS_RETURN_FAILURE){
+        printf("failure to write\n");
+    }
+
     ss_destroy_generic_controller_stats(&stats);
 
     pthread_mutex_destroy(&end_mutex);
     pthread_mutex_destroy(&sentstat_mutex);
     pthread_mutex_destroy(&stats_mutex);
+    pthread_mutex_destroy(&recstart_mutex);
+    pthread_mutex_destroy(&recstop_mutex);
+    pthread_cond_destroy(&recstart_cond);
 //    pthread_cond_destroy(&sentstat_cond);
     pthread_attr_destroy(&join);
 
