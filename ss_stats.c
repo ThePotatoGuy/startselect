@@ -2,9 +2,8 @@
  * Implementation of stats functions
  * @author Andre Allan Ponce
  * @email andreponce@null.net
- * TODO: change grid structure format to size 8 array of pizza slices
- * (use atan2 to convert from coordinates to degrees)
- * Check the python script i wrote for the math
+ * TODO: add error msgs specific to operation
+ * TODO: also move io stuff to another file
  */
 
 #include <windows.h>
@@ -15,6 +14,7 @@
 
 #include <inttypes.h>
 #include <math.h>
+#include <string.h>
 
 #include "ss_config.h"
 #include "ss_constants.h"
@@ -33,6 +33,16 @@
 
 // number of degrees in circle
 #define CIRCLE_DEG 360
+
+// stat file stuff
+#define STAT_READ "r"
+#define STAT_WRITE "w"
+
+// buffer size
+#define BUFFER_SIZE 512
+
+// tok delimieters
+#define TOK_DLM ":\n"
 
 // number of joystick slices
 const int SS_JOYSTICK_SLICE_COUNT       = SLICE_COUNT;
@@ -60,6 +70,15 @@ program may be corrupted\n";
 
 // joystick access pattern (generated at startup)
 static SS_JOYSTICK_SLICE JOYSTICK_ACCESSPATTERN[SLICE_COUNT];
+
+// write messages
+static const char FILE_STAT_BUT_FMT[]   = "%i:%"PRIu64":%"PRIu64"\n";
+static const char FILE_STAT_JOY_FMT[]   = "%i";
+static const char FILE_STAT_JOY_SFMT[]  = ":%"PRIu64;
+
+// read messages
+static const char FILE_STAT_BUT_RD[]    = "%i:%"SCNu64":%"SCNu64;
+static const char FILE_STAT_JOY_SRD[]   = "%"SCNu64;
 
 //  STATIC FUNCTIONS    =======================================================
 
@@ -128,6 +147,79 @@ static SS_JOYSTICK_SLICE convert_joystick_coordinate_to_slice(
  *  @returns degree of the x and y coordinate
  */
 static double convert_xy_to_degree(SHORT x, SHORT y);
+
+/*
+ * Performs a full copy of button stats data from src and stores it in dest
+ *
+ * Assumes dest is initialized
+ *
+ * IN:
+ *  @param src - data to copy
+ *  @param drawonly - only copies data needed for drawing
+ *
+ * OUT:
+ *  @param dest - contains copied data
+ */
+static void copy_button(
+        ss_button_stats *dest, 
+        const ss_button_stats *src,
+        bool drawonly
+);
+
+/*
+ * Performs a full copy of joystick grid stats data from src and stores it in
+ * dest
+ *
+ * Assumes dest is intiailized
+ *
+ * IN:
+ *  @param src - data to copy
+ *  @param drawonly - only copies data needed for drawing
+ *
+ * OUT:
+ *  @param dest - contains copied data
+ */
+static void copy_joygrid(
+        ss_joystick_grid *dest,
+        const ss_joystick_grid *src,
+        bool drawonly
+);
+
+/*
+ * Performs a fully copy of joystick stats data from src and stores it in dest
+ *
+ * Assumes dest is intialized
+ *
+ * IN:
+ *  @param src - data to copy
+ *  @param drawonly - only copies data needed for drawing
+ *
+ * OUT:
+ *  @param dest - contains copied data
+ */
+static void copy_joystick(
+        ss_joystick_stats *dest,
+        const ss_joystick_stats *src,
+        bool drawonly
+);
+
+/*
+ * Performs a full copy of trigger stats data from src and stores it in dest
+ *
+ * Assumes dest is intitalized
+ *
+ * IN:
+ *  @param src - data to copy
+ *  @param drawonly - only copies data needed for drawing
+ *
+ * OUT:
+ *  @param dest - contains copied data
+ */
+static void copy_trigger(
+        ss_trigger_stats *dest,
+        const ss_trigger_stats *src,
+        bool drawonly
+);
 
 /*
  * Deletes the given button stats struct
@@ -427,6 +519,277 @@ void ss_process_stats(
             input->poll, input->freq);
 } // ss_process_stats
 
+void ss_stats_copy(
+        ss_generic_controller_stats *dest,
+        const ss_generic_controller_stats *src,
+        bool drawonly
+){
+    copy_button(&(dest->buttons), &(src->buttons), drawonly);
+
+    copy_joystick(&(dest->joystick_left), &(src->joystick_left), drawonly);
+    copy_joystick(&(dest->joystick_right), &(src->joystick_right), drawonly);
+
+    copy_trigger(&(dest->trigger_left), &(src->trigger_left), drawonly);
+    copy_trigger(&(dest->trigger_right), &(src->trigger_right), drawonly);
+} // ss_stats_copy
+
+int ss_stats_read(
+        ss_generic_controller_stats *stats,
+        const char *filepath
+){
+    FILE *file;
+    char buffer[BUFFER_SIZE];
+    char *token;
+    int rc;
+
+    // input
+    int id;
+    ss_statnum prscts;
+    ss_statnum prstim;
+
+    file = fopen(filepath, STAT_READ);
+
+    if (file == NULL){
+        return AES_RETURN_FAILURE;
+    }
+
+    // ensure the read in file has ps3
+    if (fgets(buffer, BUFFER_SIZE, file) == NULL){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    // check for PS3 header
+    if (strncmp(buffer, "PS3", 3) != 0){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    // now start button reads
+    for (int index = 0; index < SS_BUTTON_COUNT; index++){
+        
+        // grab line
+        if (fgets(buffer, BUFFER_SIZE, file) == NULL){
+            fclose(file);
+            return AES_RETURN_FAILURE;
+        }
+
+        // parse line
+        rc = sscanf(buffer, FILE_STAT_BUT_RD. &id, &prscts, &prstim);
+
+        // expecting 3 arguments
+        // also making sure index and id match
+        if (rc != 3 || id != index){
+            fclose(file);
+            return AES_RETURN_FAILURE;
+        }
+
+        stats->buttons.press_counts[index] = prscts;
+        stats->buttons.press_times_ms[index] = prstim;
+
+        set_largest_if_largest(&(stats->buttons.largest), prstim);
+    }
+
+    // triggers
+    // left trigger
+    if (fgets(buffer, BUFFER_SIZE, file) == NULL){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    // parse line
+    rc = sscanf(buffer, FILE_STAT_BUT_RD, &id, &prscts, &prstim);
+
+    if (rc != 3 || id != SS_TRIGGER_LEFT){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    // save data
+    stats->trigger_left.press_count = prscts;
+    stats->trigger_left.press_time = prstim;
+
+    // right trigger
+    if (fgets(buffer, BUFFER_SIZE, file) == NULL){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    // parse line
+    rc = sscanf(buffer, FILE_STAT_BUT_RD, &id, &prscts, &prstim);
+
+    if (rc != 3 || id != SS_TRIGGER_RIGHT){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    // save data
+    stats->trigger_right.press_count = prscts;
+    stats->trigger_right.press_time = prstim;
+
+    // joysticks
+    // left joystick
+    if (fgets(buffer, BUFFER_SIZE, file) == NULL){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    // tokenize
+    token = strtok(buffer, TOK_DLM);
+    
+    // check for matching id
+    rc = sscanf(token, FILE_STAT_JOY_FMT, &id);
+
+    if (rc != 1 || id != SS_JOYSTICK_LEFT){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    // now begin loop for slices
+    for (int index = 0; index < SLICE_COUNT; index++){
+
+        // tokenize
+        token = strtok(NULL, TOK_DLM);
+
+        if (token == NULL){
+            fclose(file);
+            return AES_RETURN_FAILURE;
+        }
+
+        // parse token
+        rc = sscanf(token, FILE_STAT_JOY_SRD, &prstim);
+
+        if (rc != 1){
+            fclose(file);
+            return AES_RETURN_FAILURE;
+        }
+
+        stats->joystick_left.data.pizza[index] = prstim;
+
+        set_largest_if_largest(&(stats->joystick_left.data.largest), prstim);
+    }
+
+    // right joystick
+    if (fgets(buffer, BUFFER_SIZE, file) == NULL){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    token = strtok(buffer, TOK_DLM);
+
+    // check for matching id
+    rc = sscanf(token, FILE_STAT_JOY_FMT, &id);
+
+    if (rc != 1 || id != SS_JOYSTICK_RIGHT){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    // now begin loop for slices
+    for (int index = 0; index < SLICE_COUNT; index++){
+
+        // tokenize
+        token = strtok(NULL, TOK_DLM);
+
+        if (token == NULL){
+            fclose(file);
+            return AES_RETURN_FAILURE;
+        }
+
+        // parse token
+        rc = sscanf(token, FILE_STAT_JOY_SRD, &prstim);
+
+        if (rc != 1){
+            fclose(file);
+            return AES_RETURN_FAILURE;
+        }
+
+        stats->joystick_right.data.pizza[index] = prstim;
+
+        set_largest_if_largest(&(stats->joystick_right.data.largest), prstim);
+    }
+
+    // successful reading
+    fclose(file);
+    return AES_RETURN_SUCCESS;
+
+} // ss_stats_read
+
+int ss_stats_write(
+        const ss_generic_controller_stats *stats, 
+        const char *filepath
+){
+
+    FILE *file;
+
+    file = fopen(filepath, STAT_WRITE);
+
+    if (file == NULL){
+        return AES_RETURN_FAILURE;
+    }
+
+    // write identiifier
+    if (fprintf(file, "PS3\n") < 0){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    // now for the buttons
+    for (int index = 0; index < SS_BUTTON_COUNT; index++){
+        if (fprintf(file, FILE_STAT_BUT_FMT, index, 
+                    stats->buttons.press_counts[index],
+                    stats->buttons.press_times_ms[index]) 
+                < 0){
+            fclose(file);
+            return AES_RETURN_FAILURE;
+        }
+    }
+
+    // and triggers
+    if (fprintf(file, FILE_STAT_BUT_FMT, SS_TRIGGER_LEFT, 
+                stats->trigger_left.press_count, 
+                stats->trigger_left.press_time) < 0 
+            || fprintf(file, FILE_STAT_BUT_FMT, SS_TRIGGER_RIGHT,
+                stats->trigger_right.press_count,
+                stats->trigger_right.press_time) < 0
+            ){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    // joysticks
+    if (fprintf(file, FILE_STAT_JOY_FMT, SS_JOYSTICK_LEFT) < 0){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    for (int index = 0; index < SLICE_COUNT; index++){
+        if (fprintf(file, FILE_STAT_JOY_SFMT, 
+                    stats->joystick_left.data.pizza[index]) < 0){
+            fclose(file);
+            return AES_RETURN_FAILURE;
+        }
+    }
+
+    if (fprintf(file, "\n") < 0
+            || fprintf(file, FILE_STAT_JOY_FMT, SS_JOYSTICK_RIGHT) < 0){
+        fclose(file);
+        return AES_RETURN_FAILURE;
+    }
+
+    for (int index = 0; index < SLICE_COUNT; index++){
+        if (fprintf(file, FILE_STAT_JOY_SFMT,
+                    stats->joystick_right.data.pizza[index]) < 0){
+            fclose(file);
+            return AES_RETURN_FAILURE;
+        }
+    }
+
+    // success in writing
+    fclose(file);
+    return AES_RETURN_SUCCESS;
+} // ss_stats_write
+
 //  STATIC IMPLEMENTATION   ===================================================
 
 static ss_statnum calculate_time_diff(
@@ -457,6 +820,69 @@ static SS_JOYSTICK_SLICE convert_joystick_coordinate_to_slice(
 static double convert_xy_to_degree(SHORT x, SHORT y){
     return atan2(y,x) * 180 / PI;
 } // convert_xy_to_degree
+
+static void copy_button(
+        ss_button_stats *dest, 
+        const ss_button_stats *src,
+        bool drawonly
+){
+
+    memcpy(dest->press_times_ms, src->press_times_ms, 
+            src->size * sizeof(ss_statnum));
+    memcpy(dest->press_counts, src->press_counts, 
+            src->size * sizeof(ss_statnum));
+    dest->largest = src->largest;
+    dest->size = src->size;
+
+    // non draw data next
+    if (!drawonly){
+        memcpy(dest->states, src->states, src->size * sizeof(SS_INPUT_STATE));
+        memcpy(dest->start_times, src->start_times,
+                src->size * sizeof(LARGE_INTEGER));
+    }
+} // copy_button
+
+static void copy_joygrid(
+        ss_joystick_grid *dest,
+        const ss_joystick_grid *src,
+        bool drawonly
+){
+
+    memcpy(dest->pizza, src->pizza, src->size * sizeof(ss_statnum));
+    dest->largest = src->largest;
+    dest->size = src->size;
+
+    // non draw data next
+    if (!drawonly){
+        dest->offset = src->offset;
+        dest->spacing = src->spacing;
+        dest->prev - src->prev;
+    }
+
+} // copy_joygrid
+
+static void copy_joystick(
+        ss_joystick_stats *dest,
+        const ss_joystick_stats *src,
+        bool drawonly
+){
+    copy_joygrid(&(dest->data), &(src->data), drawonly);
+    dest->type = src->type;
+
+    if (!drawonly){
+        dest->state = src->state;
+        dest->start_time = src->start_time;
+    }
+
+} // copy_joystick
+
+static void copy_trigger(
+        ss_trigger_stats *dest,
+        const ss_trigger_stats *src,
+        bool drawonly
+){
+    *dest = *src;
+} // copy_trigger
 
 static void destroy_button_stats(ss_button_stats *buttons){
     if (buttons->press_times_ms != NULL){

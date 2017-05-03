@@ -13,12 +13,14 @@
 
 #include <windows.h>
 
+#include <inttypes.h>
+
 #include "ss_gamecontroller.h"
 
 //  TYPES   ===================================================================
 
 // the large number type we are using for all timing stats
-typedef unsigned long long ss_statnum;
+typedef uint64_t ss_statnum;
 
 // slices indexes
 typedef enum{
@@ -214,6 +216,57 @@ void ss_print_stats(ss_generic_controller_stats *stats);
 void ss_process_stats(
         ss_generic_controller_stats *stats,
         ss_generic_controller *input
+);
+
+/*
+ * Performs a memcpy of the data (full copy) from src and stores it in dest
+ *
+ * Assumes dest is intialized
+ *
+ * IN:
+ *  @param src - the ss_generic_controller struct to copy
+ *  @param drawonly - only copies data necessary for drawing
+ *
+ * OUT:
+ *  @param dest - the copied ss_generic_controller struct
+ */
+void ss_stats_copy(
+        ss_generic_controller_stats *dest,
+        const ss_generic_controller_stats *src,
+        bool drawonly
+);
+
+/*
+ * Reads the given file into the given stats struct. 
+ *
+ * Assumes stats is intialized
+ *
+ * IN:
+ *  @param stats - intailzied stast struct
+ *  @param filepath - the path and name of file to read
+ *
+ * OUT:
+ *  @param stats - stats struct filled with data
+ *  @returns AES_RETURN_SUCCESS on success, AES_RETURN_FAILURE otherwise
+ */
+int ss_stats_read(
+        ss_generic_controller_stats *stats,
+        const char *filepath
+);
+
+/*
+ * Writes the stats data to a file using the given filepath 
+ *
+ * IN
+ *  @param stats - the stats data to save
+ *  @param filepath - the path and name of file to save
+ *
+ * OUT:
+ *  @returns AES_RETURN_SUCCESS on success, AES_RETURN_FAILURE otherwise
+ */
+int ss_stats_write(
+        const ss_generic_controller_stats *stats, 
+        const char *filepath
 );
 
 #endif
