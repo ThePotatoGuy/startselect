@@ -48,6 +48,22 @@
 
 #include "ss_menu.h"
 
+//  DEFINES ===================================================================
+
+#define HELPONE "Space - Start/Stop recording\ng - generate image\ns - save "
+#define HELPTWO "stats (recording must be stopped)\nl - load stats (recording "
+#define HELPTHR "must be stopped)\nr - clear data (recording must be stopped)"
+#define HELPFOR "\nc - pick render color\nh - show this help\n\nNOTES:\n"
+#define HELPFIV "Default render color is material design blue\n"
+
+#define DHELP HELPONE HELPTWO HELPTHR HELPFOR HELPFIV
+
+//  CONSTANTS   ===============================================================
+
+static const char * FILTERPATTERN[1] = {"*.sss"};
+static const char FILTERDESC[] = "Start Select Stat files";
+static const char HELP[] = DHELP;
+
 //  ENUMS   ===================================================================
 
 // recording state
@@ -72,7 +88,7 @@ typedef struct{
 
     // start recording signal
     pthread_mutex_t     *recstart_mutex;
-    pthread_cond_t      *recstart_cond;
+//    pthread_cond_t      *recstart_cond;
     int                 *recstart;
 
     // stop recording signal
@@ -85,9 +101,36 @@ typedef struct{
 
 } ss_event_data;
 
+typedef struct{
+    SDL_Renderer *renderer;
+
+    // background
+    SDL_Texture *bg_texture;
+    SDL_Rect bg_dim;
+
+    // stats
+    ss_generic_controller_stats *stats;
+    ss_ps3_colors *statcolors;
+} render_data;
+
+//  STATIC VARIABLES    =======================================================
+
+// holds ptr to the background texture
+//static SDL_Texture *bg_texture;
+
+// backgrund texture dimensions
+//static SDL_Rect bg_tdim;
+
 /*  STATIC FUNCTIONS    =====================================================*/
 
+// initalizes background texture
+static int init_bgtexture(render_data *rdata);
 
+// renders data intializat
+//static int init_renderdata(render_data *rdata);
+
+// renders the screen nicely
+static int renderscreen(render_data *rdata);
 
 /*  IMPLEMENTATION  =========================================================*/
 
@@ -127,51 +170,62 @@ void* ss_event_handling(void *thread_data){
     QueryPerformanceFrequency(&pfreq);
     QueryPerformanceCounter(&pfcount);
 
+    RECORD_STATE rstate;
+    rstate = OFF;
 
     // event handlingloop
     while (!quit){
-        
-        res = XInputGetState(controller_id, &state);
+       
+        switch (rstate){
 
-        if(res == ERROR_SUCCESS){
-            // connected
-            if(state.dwPacketNumber != packet_num){
-                // differences occureed
-                ss_process_input(&controller, &(state.Gamepad));
+            case ON:
+            {
+                // recording
+                res = XInputGetState(controller_id, &state);
 
-                pthread_mutex_lock(data->stats_mutex);
-                ss_process_stats(stats, &controller);
-                pthread_mutex_unlock(data->stats_mutex);
+                if(res == ERROR_SUCCESS){
+                    // connected
+                    if(state.dwPacketNumber != packet_num){
+                        // differences occureed
+                        ss_process_input(&controller, &(state.Gamepad));
 
-//                ph_set(data->sentstat_mutex, data->sentstat, 1);
+                        pthread_mutex_lock(data->stats_mutex);
+                        ss_process_stats(stats, &controller);
+                        pthread_mutex_unlock(data->stats_mutex);
+
+                        packet_num = state.dwPacketNumber;
+                    }
+                }else{
+                    printf("connection error\n");
+                }
+
                 
+                // check if we should stop recording
+                if (ph_getreset(data->recstop_mutex, data->recstop) == 1){
+                    rstate = OFF;
+                    // okay time to stop recording
+                    pthread_mutex_lock(data->stats_mutex);
+                    ss_stats_finishstate(stats);
+                    pthread_mutex_unlock(data->stats_mutex);
+                }
 
-//                ss_print_generic_controller(&controller);
-      //          QueryPerformanceCounter(&pfend);
-    //            testtime = (1000 * (pfend.QuadPart - pfcount.QuadPart)) / 
-//                    pfreq.QuadPart;
-//                if(testtime > 50){
-//                    printf("diff %f\n",(float)testtime);
-//                }
-//                pfcount = pfend;
-
-//                printf("change here\n");
-
-                packet_num = state.dwPacketNumber;
+                break;
             }
-        }else{
-            printf("connection error\n");
+            case OFF:
+            {
+                // check if main thread tells us to start again
+                if (ph_getreset(data->recstart_mutex, data->recstart) == 1){
+                    rstate = ON;
+                }
+                break;
+            }
+            default:
+            {
+                break;
+            }
         }
-        
-        if (ph_getreset(data->recstop_mutex, data->recstop) == 1){
-            // okay time to stop recording
-            pthread_mutex_lock(data->stats_mutex);
-            ss_stats_finishstate(stats);
-            pthread_mutex_unlock(data->stats_mutex);
-            
-            // now wait for main thread to tell us to start again
-            ph_wait(data->recstart_mutex, data->recstart_cond, data->recstart);
-        }
+
+
 
         quit = ph_get(data->end_mutex, data->end);
     }
@@ -190,14 +244,20 @@ void* ss_event_handling(void *thread_data){
 int ss_menu_run(){
 
     ss_event_data data;
+    render_data rdata;
     pthread_mutex_t end_mutex, sentstat_mutex, stats_mutex;
     pthread_mutex_t recstart_mutex, recstop_mutex;
-    pthread_cond_t  sentstat_cond;
-    pthread_cond_t  recstart_cond;
+//    pthread_cond_t  sentstat_cond;
+//    pthread_cond_t  recstart_cond;
     pthread_attr_t  join;
     int end, sentstat;
+    int rc;
     int recstart, recstop;
     void *status;
+    const char *filename = NULL;
+    const char *colorCh = NULL;
+    unsigned char colorstrc[3];
+    unsigned char colorstr[3];
     ss_generic_controller_stats stats;
     ss_generic_controller_stats workingcopy;
 
@@ -214,15 +274,17 @@ int ss_menu_run(){
         return SS_RETURN_FAILURE;
     }
 
+    rdata.stats = &workingcopy;
+
     // okay attempt read here
-    ss_stats_read(&stats, "statsout");
+//    ss_stats_read(&stats, "statsout");
 
     pthread_mutex_init(&end_mutex, NULL);
     pthread_mutex_init(&sentstat_mutex, NULL);
     pthread_mutex_init(&stats_mutex, NULL);
     pthread_mutex_init(&recstart_mutex, NULL);
     pthread_mutex_init(&recstop_mutex, NULL);
-    pthread_cond_init(&recstart_cond, NULL);
+//    pthread_cond_init(&recstart_cond, NULL);
 //    pthread_cond_init(&sentstat_cond, NULL);
     pthread_attr_init(&join);
     end = 0;
@@ -240,7 +302,7 @@ int ss_menu_run(){
     data.stats_mutex = &stats_mutex;
     data.stats = &stats;
     data.recstart_mutex = &recstart_mutex;
-    data.recstart_cond = &recstart_cond;
+    //data.recstart_cond = &recstart_cond;
     data.recstart = &recstart;
     data.recstop_mutex = &recstop_mutex;
     data.recstop = &recstop;
@@ -257,9 +319,6 @@ int ss_menu_run(){
     
     SDL_Window *window;
     SDL_Renderer *renderer;
-    SDL_Texture *bitmapTex = NULL;
-    SDL_Surface *bitmapSurface = NULL;
-    SDL_Rect outtex;
     int quit;
 
     quit = 0;
@@ -284,38 +343,25 @@ int ss_menu_run(){
         quit = 1;
     }
 
-    //bitmapSurface = SDL_LoadBMP("images/controllerdiag_temp.bmp");
-//    bitmapSurface = SDL_LoadBMP("images/controllermap.bmp");
+    rdata.renderer = renderer;
 
-//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV.bmp");
-//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV1.bmp");
-//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV2.bmp");
-//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV3.bmp");
-//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV4.bmp");
-//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV5.bmp");
-//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV6.bmp");
-//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV7.bmp");
-    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV8.bmp");
-//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV9.bmp");
-//    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV10.bmp");
+    if (init_bgtexture(&rdata) == SS_RETURN_FAILURE){
+        // error init texture
 
-    //bitmapSurface = SDL_LoadBMP("images/controllermap_white.bmp");
-    bitmapTex = SDL_CreateTextureFromSurface(renderer, bitmapSurface);
-    outtex.x = 0;
-    outtex.y = 0;
-    outtex.w = bitmapSurface->w;
-    outtex.h = bitmapSurface->h;
-    SDL_FreeSurface(bitmapSurface);
-    SDL_RenderCopy(renderer, bitmapTex, NULL, &outtex);
-    SDL_RenderPresent(renderer);
+        printf("Could not texture\n");
+        quit = 1;
+    }
 
 
     ss_ps3_colors statcolors;
 
     ss_canvas_color maincolor;
     maincolor = SS_CLR_MDBLUE;
+    ss_cvsclr_get(&colorstrc, &maincolor);
+//    ss_cvsclr_get(&colorstr, &maincolor);
 
     ss_ps3_stclr_fill(&statcolors, &maincolor, true);
+    rdata.statcolors = &statcolors;
 
 /*
     // first lets just grab the ps3 controller manually
@@ -341,7 +387,6 @@ int ss_menu_run(){
 
 
 //    SDL_RenderPresent(renderer);
-    SDL_Event event; // event handler
 /*
     // event handling loop
     while (!quit){
@@ -411,23 +456,18 @@ int ss_menu_run(){
 
     ss_print_stats(&stats);
   */
-    SDL_RenderClear(renderer);
-    SDL_RenderCopy(renderer, bitmapTex, NULL, &outtex);
 
-    // ready to process
-    ss_colorizealpha(&statcolors, &stats);
-    if (ss_ps3_cvs_drawps3(renderer, &statcolors, true) == SS_RETURN_FAILURE){
-        printf("fail to draw\n");
+    if (renderscreen(&rdata) == SS_RETURN_FAILURE){
+        printf("\nrenderfail\n");
+        quit = 1;
     }
+        
 
-    // and update sdl
-    SDL_RenderPresent(renderer);
-
-    quit = 0;
+    SDL_Event event; // event handler
 
     RECORD_STATE state;
 
-    state = ON;
+    state = OFF;
 
     // event handling loop
     while (!quit){
@@ -452,18 +492,11 @@ int ss_menu_run(){
                             ss_stats_copy(&workingcopy, &stats, true);
                             pthread_mutex_unlock(&stats_mutex);
 
-                            ss_colorizealpha(&statcolors, &stats);
-
-                            SDL_RenderClear(renderer);
-                            SDL_RenderCopy(renderer, bitmapTex, NULL, &outtex);
-
-                            // ready to process
-                            if (ss_ps3_cvs_drawps3(renderer, &statcolors, true) == SS_RETURN_FAILURE){
-                                printf("fail to draw\n");
+                            if (renderscreen(&rdata) == SS_RETURN_FAILURE){
+                                printf("\nrenderfali\n");
+                                quit = 1;
                             }
 
-
-                            SDL_RenderPresent(renderer);
                             printf("attempted rerender\n");
                             break;
                         }
@@ -484,6 +517,8 @@ int ss_menu_run(){
                                             "info",
                                             1);
 
+                                    SDL_SetWindowTitle(window, SS_WINDOWNAME);
+
                                     break;
                                 }
                                 case OFF:
@@ -497,9 +532,9 @@ int ss_menu_run(){
                                             "info",
                                             1);
 
-                                    ph_signal(&recstart_mutex, 
-                                            &recstart_cond, &recstart);
+                                    ph_set(&recstart_mutex, &recstart, 1);
                                     state = ON;
+                                    SDL_SetWindowTitle(window, SS_WINDOWNAMER);
                                     break;
                                 }
                                 default:
@@ -510,7 +545,7 @@ int ss_menu_run(){
                             }
                             break;
                         }
-                        case SDLK_c:
+                        case SDLK_r:
                         {
                             // clear data, but only do this if OFF
                             switch (state){
@@ -527,8 +562,32 @@ int ss_menu_run(){
                                 }
                                 case OFF:
                                 {
-                                    // we are off, clear data
-                                    // TODO tell other thread to clear
+                                    if (tinyfd_messageBox(
+                                                "Clearing data",
+                                                "Are you sure you want to clear data?",
+                                                "okcancel",
+                                                "question",
+                                                0) == 1){
+                                        // we are off, clear data
+                                    
+                                        // clear stats in thread
+                                        pthread_mutex_lock(&stats_mutex);
+                                        ss_stats_clear(&stats);
+                                        pthread_mutex_unlock(&stats_mutex);
+
+                                        // clear our copy of stats
+                                        ss_stats_clear(&workingcopy);
+
+                                        // clear draw colors
+                                        ss_ps3_stclr_alpha(&statcolors, 0);
+                                        //ss_print_stats(&workingcopy);
+
+                                        if (renderscreen(&rdata) == SS_RETURN_FAILURE){
+                                            printf("\nfailure to redne\n");
+                                            quit = 1;
+                                        }
+                                    }
+
                                     break;
                                 }
                                 default:
@@ -537,6 +596,152 @@ int ss_menu_run(){
                                     break;
                                 }
                             }
+                            break;
+                        }
+                        case SDLK_s:
+                        {
+                            switch (state){
+                                case OFF:
+                                {
+                                    // save the stats
+                                    filename = tinyfd_saveFileDialog(
+                                            "Save Stats",
+                                            "stats001.sss",
+                                            1,
+                                            FILTERPATTERN,
+                                            FILTERDESC);
+
+                                    if (filename != NULL){
+                                        // person selected file, lets save
+                                        pthread_mutex_lock(&stats_mutex);
+                                        ss_stats_copy(&workingcopy, &stats, true);
+                                        pthread_mutex_unlock(&stats_mutex);
+
+                                        if (ss_stats_write(&workingcopy, filename)
+                                                == SS_RETURN_FAILURE){
+                                            tinyfd_messageBox(
+                                                    "BAD",
+                                                    "Save failed",
+                                                    "ok",
+                                                    "error",
+                                                    1);
+                                        }
+                                    } 
+                                    
+                                    break;
+                                }
+                                case ON:
+                                {
+                                    tinyfd_messageBox(
+                                            "HOLDON",
+                                            "turn off recording before saving",
+                                            "ok",
+                                            "warning",
+                                            1);
+                                    break;
+                                }
+                                default:
+                                {
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                        case SDLK_l:
+                        {
+                            switch (state){
+                                case OFF:
+                                {
+                                    // load stats
+                                    filename = tinyfd_openFileDialog(
+                                            "Load stats",
+                                            "",
+                                            1,
+                                            FILTERPATTERN,
+                                            FILTERDESC,
+                                            0);
+
+                                    if (filename != NULL){
+                                        // person selected file, lets load
+                                        pthread_mutex_lock(&stats_mutex);
+                                        rc = ss_stats_read(&stats, filename);
+                                        pthread_mutex_unlock(&stats_mutex);
+
+                                        if (rc == SS_RETURN_FAILURE){
+                                            tinyfd_messageBox(
+                                                    "BAD",
+                                                    "Load failed",
+                                                    "ok",
+                                                    "error",
+                                                    1);
+                                        }
+
+                                        // now get ready to render
+                                        pthread_mutex_lock(&stats_mutex);
+                                        ss_stats_copy(&workingcopy, &stats, true);
+                                        pthread_mutex_unlock(&stats_mutex);
+
+                                        // and rendder
+                                        if (renderscreen(&rdata) == SS_RETURN_FAILURE){
+                                            printf("\nfailed\n");
+                                        }
+                                    }
+                                    break;   
+                                }
+                                case ON:
+                                {
+                                    tinyfd_messageBox(
+                                            "HOLDON",
+                                            "turn off recording before loading",
+                                            "ok",
+                                            "warning",
+                                            1);
+                                    break;
+                                }
+                                default:
+                                {
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                        case SDLK_h:
+                        {
+                            tinyfd_messageBox(
+                                    "Help",
+                                    HELP,
+                                    "ok",
+                                    "info",
+                                    1);
+
+                            break;
+                        }
+                        case SDLK_c:
+                        {
+                            // pick color
+                            
+                            colorCh = tinyfd_colorChooser(
+                                    "Pick color",
+                                    NULL,
+                                    colorstrc,
+                                    colorstr);
+
+                            if (colorCh != NULL){
+                                // we selected a color
+                                ss_cvsclr_set(&maincolor, &colorstr);
+
+                                // now redo colors
+                                ss_ps3_stclr_fill(&statcolors, &maincolor, true);
+
+                                //and rerender
+                                if (renderscreen(&rdata) == SS_RETURN_FAILURE){
+                                    printf("\nrenderfailed\n");
+                                }
+
+                                // now setup the prev color str
+                                ss_cvsclr_get(&colorstrc, &maincolor);
+                            }
+
                             break;
                         }
                         default:
@@ -569,10 +774,10 @@ int ss_menu_run(){
 
     pthread_join(controller_thread, &status);
 
-
+/*
     if (ss_stats_write(&stats, "statsout") == SS_RETURN_FAILURE){
         printf("failure to write\n");
-    }
+    }*/
 
     ss_destroy_generic_controller_stats(&stats);
 
@@ -581,13 +786,13 @@ int ss_menu_run(){
     pthread_mutex_destroy(&stats_mutex);
     pthread_mutex_destroy(&recstart_mutex);
     pthread_mutex_destroy(&recstop_mutex);
-    pthread_cond_destroy(&recstart_cond);
+//    pthread_cond_destroy(&recstart_cond);
 //    pthread_cond_destroy(&sentstat_cond);
     pthread_attr_destroy(&join);
 
     // quit
     //SDL_GameControllerClose(controller);
-    SDL_DestroyTexture(bitmapTex);
+    SDL_DestroyTexture(rdata.bg_texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
@@ -646,4 +851,47 @@ void* ss_open_window(void *thread_data){
     return NULL;
 }
 
+//  STATIC IMPLEMENTATION   ===================================================
 
+static int init_bgtexture(render_data *rdata){
+    SDL_Surface *bitmapSurface = NULL;
+
+    bitmapSurface = SDL_LoadBMP("images/tests/controllermapREV8.bmp");
+
+    if (bitmapSurface == NULL){
+        return SS_RETURN_FAILURE;
+    }
+
+    rdata->bg_texture = SDL_CreateTextureFromSurface(rdata->renderer, 
+            bitmapSurface);
+
+    if (rdata->bg_texture == NULL){
+        return SS_RETURN_FAILURE;
+    }
+
+    // dimensions
+    rdata->bg_dim.x = 0;
+    rdata->bg_dim.y = 0;
+    rdata->bg_dim.w = bitmapSurface->w;
+    rdata->bg_dim.h = bitmapSurface->h;
+
+    SDL_FreeSurface(bitmapSurface);
+    return SS_RETURN_SUCCESS;
+} // init_bgtexture
+
+static int renderscreen(render_data *rdata){
+    
+    ss_colorizealpha(rdata->statcolors, rdata->stats);
+
+    if (SDL_RenderClear(rdata->renderer) < 0 
+            || SDL_RenderCopy(rdata->renderer, rdata->bg_texture, NULL, &(rdata->bg_dim)) < 0
+            || ss_ps3_cvs_drawps3(rdata->renderer, rdata->statcolors, true)
+            == SS_RETURN_FAILURE){
+        return SS_RETURN_FAILURE;
+    }
+
+    // finally show the goods
+    SDL_RenderPresent(rdata->renderer); 
+
+    return SS_RETURN_SUCCESS;
+} // renderscreen

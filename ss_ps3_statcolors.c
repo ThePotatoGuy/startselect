@@ -15,6 +15,24 @@
 
 //  FUNCTIONS   ===============================================================
 
+void ss_ps3_stclr_alpha(ss_ps3_colors *colors, unsigned char alpha){
+    
+    // buttons
+    for (int index = 0; index < SS_BUTTON_COUNT; index++){
+        colors->buttons[index].a = alpha;
+    }
+
+    // joysticks
+    for (int index = 0; index < SS_PS3_JOY_SIZE; index++){
+        colors->joystick_left[index].a = alpha;
+        colors->joystick_right[index].a = alpha;
+    }
+
+    // triggers
+    colors->trigger_left.a = alpha;
+    colors->trigger_right.a = alpha;
+} // ss_ps3_stclr_alpha
+
 void ss_ps3_stclr_fill(
         ss_ps3_colors *colors, 
         const ss_canvas_color *fill,
@@ -32,7 +50,6 @@ void ss_ps3_stclr_fill(
     // buttons
     for (int index = 0; index < SS_BUTTON_COUNT; index++){
         colors->buttons[index] = actual_fill;
-
     }
 
     // joysticks
@@ -45,6 +62,6 @@ void ss_ps3_stclr_fill(
     colors->trigger_left = actual_fill;
     colors->trigger_right = actual_fill;
 
-    printf("%i\n", colors->trigger_left.a);
+//    printf("%i\n", colors->trigger_left.a);
 
 } // ss_ps3_stclr_fill

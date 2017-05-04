@@ -33,6 +33,17 @@ typedef struct{
 //  FUNCTIONS   ===============================================================
 
 /*
+ * Sets the alpha values in the given ss_ps3_colors struct to teh given value
+ *
+ * IN:
+ *  @param alpha - the alpha to set the alphas to
+ *
+ * OUT:
+ *  @param colors - colors struct with alphas set to given alpha
+ */
+void ss_ps3_stclr_alpha(ss_ps3_colors *colors, unsigned char alpha);
+
+/*
  * Fills the given ss_ps3_colors struct with the given fill color
  *
  * IN:

@@ -17,5 +17,6 @@ extern const int SS_WINDOW_WT;
 
 // window name
 extern const char SS_WINDOWNAME[];
+extern const char SS_WINDOWNAMER[];
 
 #endif

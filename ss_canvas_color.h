@@ -31,4 +31,28 @@ extern const ss_canvas_color SS_CLR_MDBLUE;
 extern const ss_canvas_color SS_CLR_MDGREEN;
 extern const ss_canvas_color SS_CLR_MDRED;
 
+//  FUNCTIONS   ===============================================================
+
+/*
+ * Gets the color in the given canvas color and stores it in the rgb array
+ *
+ * IN:
+ *  @param color - the canvas color to get color from
+ *
+ * OUT:
+ *  @param colorstr - rgb color array
+ */
+void ss_cvsclr_get(unsigned char (*colorstr)[3], const ss_canvas_color *color);
+
+/*
+ * Sets the color of the given canvas color to the given color values
+ *
+ * IN:
+ *  @param colorstr - ptr to array of 3 color values (unsigned char), RGB
+ *
+ * OUT:
+ *  @param color - color set to values in colorstr
+ */
+void ss_cvsclr_set(ss_canvas_color *color, const unsigned char (*colorstr)[3]);
+
 #endif

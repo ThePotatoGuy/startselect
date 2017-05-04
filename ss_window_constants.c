@@ -20,3 +20,4 @@ const int SS_WINDOW_WT      = WINDOW_WT;
 
 // window name
 const char SS_WINDOWNAME[]  = "Start Select";
+const char SS_WINDOWNAMER[] = "Start Select (RECORDING)";
