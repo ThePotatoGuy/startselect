@@ -9,8 +9,6 @@
  * one thread handles creation of a window with quit button
  * 2nd thread actually waits for controller input and displays the information
  *
- * TODO: 2nd thread should launch a seperate file that handles input
- * TODO: make shared data construct consisting of the table that holds values
  *  of button pressesa nd stuff
  */
 
