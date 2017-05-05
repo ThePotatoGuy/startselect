@@ -1,8 +1,8 @@
 CC=gcc
 
 CFLAGS=-c -Wall -std=c99 
-LFLAGS=-lmingw32 -lSDL2main -lSDL2 -lpthread -lXinput -lm -lSDL2_gfx 
-LFLAGS2=-lcomdlg32 -lole32
+LFLAGS=-lmingw32 -lSDL2main -lSDL2 -lXinput -lm -lSDL2_gfx 
+LFLAGS2=-lcomdlg32 -lole32 -static-libgcc -Wl,-Bstatic -lpthread -Wl,-Bdynamic
 #nfd.lib -lcomctl32 
 
 

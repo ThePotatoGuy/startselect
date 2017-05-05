@@ -53,16 +53,18 @@
 #define HELPONE "Space - Start/Stop recording\ng - generate image\ns - save "
 #define HELPTWO "stats (recording must be stopped)\nl - load stats (recording "
 #define HELPTHR "must be stopped)\nr - clear data (recording must be stopped)"
-#define HELPFOR "\nc - pick render color\nh - show this help\n\nNOTES:\n"
-#define HELPFIV "Default render color is material design blue\n"
+#define HELPFOR "\nc - pick render color\ni - save image to file\nh - show "
+#define HELPFIV "this help\n\nNOTES:\nDefault render color is material design"
+#define HELPSIX " blue\n"
 
-#define DHELP HELPONE HELPTWO HELPTHR HELPFOR HELPFIV
+#define DHELP HELPONE HELPTWO HELPTHR HELPFOR HELPFIV HELPSIX
 
 //  CONSTANTS   ===============================================================
 
 static const char * FILTERPATTERN[1] = {"*.sss"};
 static const char FILTERDESC[] = "Start Select Stat files";
 static const char HELP[] = DHELP;
+static const char *IMGFILTER[1] = {"*.bmp"};
 
 //  ENUMS   ===================================================================
 
@@ -702,6 +704,29 @@ int ss_menu_run(){
                                 {
                                     break;
                                 }
+                            }
+                            break;
+                        }
+                        case SDLK_i:
+                        {
+                            // take a pic
+                            filename = tinyfd_saveFileDialog(
+                                    "Save image",
+                                    "screen001.bmp",
+                                    1,
+                                    IMGFILTER,
+                                    "bmp images");
+
+                            if (filename != NULL){
+                                // save that picture
+
+                                SDL_Surface *sshot = SDL_CreateRGBSurface(0, rdata.bg_dim.w, 
+                                        rdata.bg_dim.h, 32, 0x00ff0000, 0x0000ff00, 
+                                        0x000000ff, 0xff000000);
+                                SDL_RenderReadPixels(renderer, NULL, 
+                                        SDL_PIXELFORMAT_ARGB8888, sshot->pixels, sshot->pitch);
+                                SDL_SaveBMP(sshot, filename);
+                                SDL_FreeSurface(sshot);
                             }
                             break;
                         }
