@@ -64,10 +64,6 @@ static const char TRIGGER_STAT_STR[]    = "Trigger: %-20s : %8"PRIu64" presses \
 static const char LARGEST_TIME_STR[]    = "Largest time: %s : %"PRIu64"\n";
 static const char LARGEST_PRESS_STR[]   = "Largest press: %s : %"PRIu64"\n";
 
-// error message
-static const char ERROR_GRIDSIZE[]      = "The gridsize is not even. Your \
-program may be corrupted\n";
-
 // joystick access pattern (generated at startup)
 static SS_JOYSTICK_SLICE JOYSTICK_ACCESSPATTERN[SLICE_COUNT];
 

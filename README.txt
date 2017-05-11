@@ -27,8 +27,7 @@ SPACE   - Starts/Stops recording input (The window title will have (RECORDING)
         when input is being recorded)
 G       - Generate the image
 C       - open color chooser dialog box
-I       - open save file dialog box to save the image (recording must be
-        stopped)
+I       - open save file dialog box to save the image
 S       - open save file dialog box to save stats (recording must be stopped)
 L       - open open file dialog box to load stats (recording must be stopped)
 R       - clear stats data (a confirmation dialog box will appear)
@@ -37,11 +36,14 @@ TO BUILD:
 
 1:  Install MingW64 I recommended using MSYS2 to setup the build environment. 
     (http://www.msys2.org)
-2:  Install SDL2. This can be done through MSYS2
+2:  Install winpthreads and SDL2. This can be done through MSYS2.
 3:  Add "SDL2_gfx/include" to your include path and "SDL2_gfx/lib" to your 
     library path. You MUST use this version as the current official version 
     has a rendering bug.
 4:  Ensure SDL2.dll and SDL2_gfx.dll are in the build directory.
 5:  Run make
 
-
+ADDITIONAL:
+All the STATS files (*.sss) that were saved are included in folder "stats/".
+This is so you can view image results without having to have a controller 
+plugged in.

@@ -143,8 +143,7 @@ void* ss_event_handling(void *thread_data){
     ss_generic_controller controller;
     ss_generic_controller_stats *stats;
 
-    int rc;
-    LARGE_INTEGER pfcount, pfreq, pfend;
+    LARGE_INTEGER pfcount, pfreq;
 
     data = (ss_event_data*)thread_data;
 
@@ -166,7 +165,6 @@ void* ss_event_handling(void *thread_data){
         return NULL;
     }
 
-    long testtime = 0;
     QueryPerformanceFrequency(&pfreq);
     QueryPerformanceCounter(&pfcount);
 
@@ -387,75 +385,6 @@ int ss_menu_run(){
 
 
 //    SDL_RenderPresent(renderer);
-/*
-    // event handling loop
-    while (!quit){
-        // only do things when we have an event
-        if (SDL_PollEvent(&event)){
-
-            switch (event.type){
-                case SDL_QUIT:
-                {
-                    quit = 1;
-                    break;
-                }
-                case SDL_MOUSEBUTTONDOWN:
-                {
-                    printf("(%i, %i)\n", event.button.x, event.button.y);
-                    break;
-                }
-                default:
-                {
-                    break;
-                }
-            }
-        }
-
-    }
-*/
-   
- 
-    // TEMP TODO (needed incase of resolution mishaps
-    // manuall set values
-/*
-    stats.buttons.press_times_ms[0]     = 221494;
-    stats.buttons.press_times_ms[1]     = 9419;
-    stats.buttons.press_times_ms[2]     = 44498;
-    stats.buttons.press_times_ms[3]     = 996;
-    stats.buttons.press_times_ms[4]     = 3739;
-    stats.buttons.press_times_ms[5]     = 3312;
-    stats.buttons.press_times_ms[6]     = 9806;
-    stats.buttons.press_times_ms[7]     = 99;
-    stats.buttons.press_times_ms[8]     = 817;
-    stats.buttons.press_times_ms[9]     = 3844;
-    stats.buttons.press_times_ms[10]    = 7583;
-    stats.buttons.press_times_ms[11]    = 6586;
-    stats.buttons.press_times_ms[12]    = 4683;
-    stats.buttons.press_times_ms[13]    = 6389;
-    stats.buttons.largest               = 221494;
-    stats.joystick_left.data.pizza[0]   = 1515381;
-    stats.joystick_left.data.pizza[7]   = 28093;
-    stats.joystick_left.data.pizza[6]   = 13977;
-    stats.joystick_left.data.pizza[5]   = 36687;
-    stats.joystick_left.data.pizza[4]   = 774962;
-    stats.joystick_left.data.pizza[3]   = 27218;
-    stats.joystick_left.data.pizza[2]   = 18946;
-    stats.joystick_left.data.pizza[1]   = 28694;
-    stats.joystick_left.data.largest    = 1515381;
-    stats.joystick_right.data.pizza[0]  = 749160;
-    stats.joystick_right.data.pizza[7]  = 437;
-    stats.joystick_right.data.pizza[6]  = 1126;
-    stats.joystick_right.data.pizza[5]  = 890;
-    stats.joystick_right.data.pizza[4]  = 3374;
-    stats.joystick_right.data.pizza[3]  = 19;
-    stats.joystick_right.data.pizza[2]  = 1876;
-    stats.joystick_right.data.pizza[1]  = 0;
-    stats.joystick_right.data.largest   = 749160;
-    stats.trigger_left.press_time       = 230272;
-    stats.trigger_right.press_time      = 2454525;
-
-    ss_print_stats(&stats);
-  */
 
     if (renderscreen(&rdata) == SS_RETURN_FAILURE){
         printf("\nrenderfail\n");
@@ -470,6 +399,8 @@ int ss_menu_run(){
     state = OFF;
 
     // event handling loop
+    // TODO REFACTOR ALL OF THIS
+    // TODO PLEASE
     while (!quit){
         // only do things when we have an event
         if (SDL_PollEvent(&event)){
@@ -803,6 +734,7 @@ int ss_menu_run(){
     }*/
 
     ss_destroy_generic_controller_stats(&stats);
+    ss_destroy_gamecontroller();
 
     pthread_mutex_destroy(&end_mutex);
     pthread_mutex_destroy(&sentstat_mutex);
