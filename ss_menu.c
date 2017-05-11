@@ -30,6 +30,8 @@
 
 #include "tinyfiledialogs.h"
 
+#include "tfd_constants.h"
+
 #include "ss_canvas.h"
 #include "ss_canvas_color.h"
 #include "ss_constants.h"
@@ -48,21 +50,10 @@
 
 //  DEFINES ===================================================================
 
-#define HELPONE "Space - Start/Stop recording\ng - generate image\ns - save "
-#define HELPTWO "stats (recording must be stopped)\nl - load stats (recording "
-#define HELPTHR "must be stopped)\nr - clear data (recording must be stopped)"
-#define HELPFOR "\nc - pick render color\ni - save image to file\nh - show "
-#define HELPFIV "this help\n\nNOTES:\nDefault render color is material design"
-#define HELPSIX " blue\n"
-
-#define DHELP HELPONE HELPTWO HELPTHR HELPFOR HELPFIV HELPSIX
 
 //  CONSTANTS   ===============================================================
 
-static const char * FILTERPATTERN[1] = {"*.sss"};
-static const char FILTERDESC[] = "Start Select Stat files";
-static const char HELP[] = DHELP;
-static const char *IMGFILTER[1] = {"*.bmp"};
+
 
 //  ENUMS   ===================================================================
 
@@ -442,11 +433,12 @@ int ss_menu_run(){
                                     state = OFF;
 
                                     tinyfd_messageBox(
-                                            "Okay",
-                                            "Turning recording off",
-                                            "ok",
-                                            "info",
-                                            1);
+                                            SS_DLG_RSTR_MB_TITLE,
+                                            SS_DLG_RSTR_MB_MSG,
+                                            TFD_MSG_OK,
+                                            TFD_ICON_INFO,
+                                            TFD_BUT_OKYES
+                                    );
 
                                     SDL_SetWindowTitle(window, SS_WINDOWNAME);
 
@@ -457,11 +449,12 @@ int ss_menu_run(){
                                     // time to turn on
 
                                     tinyfd_messageBox(
-                                            "Okay",
-                                            "Turning recording on",
-                                            "ok",
-                                            "info",
-                                            1);
+                                            SS_DLG_RSTP_MB_TITLE,
+                                            SS_DLG_RSTP_MB_MSG,
+                                            TFD_MSG_OK,
+                                            TFD_ICON_INFO,
+                                            TFD_BUT_OKYES
+                                    );
 
                                     ph_set(&recstart_mutex, &recstart, 1);
                                     state = ON;
@@ -484,21 +477,23 @@ int ss_menu_run(){
                                 {
                                     // we are on, dont clear, give warning
                                     tinyfd_messageBox(
-                                            "Hold on",
-                                            "Please stop recording before clearing data",
-                                            "ok",
-                                            "warning",
-                                            1);
+                                            SS_DLG_CDFR_MB_TITLE,
+                                            SS_DLG_CDFR_MB_MSG,
+                                            TFD_MSG_OK,
+                                            TFD_ICON_WARN,
+                                            TFD_BUT_OKYES
+                                    );
                                     break;
                                 }
                                 case OFF:
                                 {
                                     if (tinyfd_messageBox(
-                                                "Clearing data",
-                                                "Are you sure you want to clear data?",
-                                                "okcancel",
-                                                "question",
-                                                0) == 1){
+                                                SS_DLG_CDP_MB_TITLE,
+                                                SS_DLG_CDP_MB_MSG,
+                                                TFD_MSG_OKC,
+                                                TFD_ICON_QUEST,
+                                                TFD_BUT_CANCELNO
+                                        ) == 1){
                                         // we are off, clear data
                                     
                                         // clear stats in thread
@@ -536,11 +531,12 @@ int ss_menu_run(){
                                 {
                                     // save the stats
                                     filename = tinyfd_saveFileDialog(
-                                            "Save Stats",
-                                            "stats001.sss",
-                                            1,
-                                            FILTERPATTERN,
-                                            FILTERDESC);
+                                            SS_DLG_SSTAT_TITLE,
+                                            SS_DLG_STAT_DFILENAME,
+                                            SS_SSS_FILT_CT,
+                                            SS_DLG_STAT_FILTER,
+                                            SS_DLG_STAT_FILTERDESC
+                                    );
 
                                     if (filename != NULL){
                                         // person selected file, lets save
@@ -551,11 +547,12 @@ int ss_menu_run(){
                                         if (ss_stats_write(&workingcopy, filename)
                                                 == SS_RETURN_FAILURE){
                                             tinyfd_messageBox(
-                                                    "BAD",
-                                                    "Save failed",
-                                                    "ok",
-                                                    "error",
-                                                    1);
+                                                    SS_DLG_SSFW_MB_TITLE,
+                                                    SS_DLG_SSFW_MB_MSG,
+                                                    TFD_MSG_OK,
+                                                    TFD_ICON_ERROR,
+                                                    TFD_BUT_OKYES
+                                            );
                                         }
                                     } 
                                     
@@ -564,11 +561,12 @@ int ss_menu_run(){
                                 case ON:
                                 {
                                     tinyfd_messageBox(
-                                            "HOLDON",
-                                            "turn off recording before saving",
-                                            "ok",
-                                            "warning",
-                                            1);
+                                            SS_DLG_SSFR_MB_TITLE,
+                                            SS_DLG_SSFR_MB_MSG,
+                                            TFD_MSG_OK,
+                                            TFD_ICON_WARN,
+                                            TFD_BUT_OKYES
+                                    );
                                     break;
                                 }
                                 default:
@@ -585,12 +583,13 @@ int ss_menu_run(){
                                 {
                                     // load stats
                                     filename = tinyfd_openFileDialog(
-                                            "Load stats",
+                                            SS_DLG_LSTAT_TITLE,
                                             "",
-                                            1,
-                                            FILTERPATTERN,
-                                            FILTERDESC,
-                                            0);
+                                            SS_SSS_FILT_CT,
+                                            SS_DLG_STAT_FILTER,
+                                            SS_DLG_STAT_FILTERDESC,
+                                            0
+                                    );
 
                                     if (filename != NULL){
                                         // person selected file, lets load
@@ -600,11 +599,12 @@ int ss_menu_run(){
 
                                         if (rc == SS_RETURN_FAILURE){
                                             tinyfd_messageBox(
-                                                    "BAD",
-                                                    "Load failed",
-                                                    "ok",
-                                                    "error",
-                                                    1);
+                                                    SS_DLG_LSFRD_MB_TITLE,
+                                                    SS_DLG_LSFRD_MB_MSG,
+                                                    TFD_MSG_OK,
+                                                    TFD_ICON_ERROR,
+                                                    TFD_BUT_OKYES
+                                            );
                                         }
 
                                         // now get ready to render
@@ -622,11 +622,12 @@ int ss_menu_run(){
                                 case ON:
                                 {
                                     tinyfd_messageBox(
-                                            "HOLDON",
-                                            "turn off recording before loading",
-                                            "ok",
-                                            "warning",
-                                            1);
+                                            SS_DLG_LSFR_MB_TITLE,
+                                            SS_DLG_LSFR_MB_MSG,
+                                            TFD_MSG_OK,
+                                            TFD_ICON_WARN,
+                                            TFD_BUT_OKYES
+                                    );
                                     break;
                                 }
                                 default:
@@ -640,11 +641,12 @@ int ss_menu_run(){
                         {
                             // take a pic
                             filename = tinyfd_saveFileDialog(
-                                    "Save image",
-                                    "screen001.bmp",
-                                    1,
-                                    IMGFILTER,
-                                    "bmp images");
+                                    SS_DLG_SIMG_TITLE,
+                                    SS_DLG_SIMG_DFILENAME,
+                                    SS_DLG_IMGSV_FILT_CT,
+                                    SS_DLG_SIMG_FILTER,
+                                    SS_DLG_SIMG_FILTERDESC
+                            );
 
                             if (filename != NULL){
                                 // save that picture
@@ -662,11 +664,12 @@ int ss_menu_run(){
                         case SDLK_h:
                         {
                             tinyfd_messageBox(
-                                    "Help",
-                                    HELP,
-                                    "ok",
-                                    "info",
-                                    1);
+                                    SS_DLG_HLP_TITLE,
+                                    SS_DLG_HLP_TEXT,
+                                    TFD_MSG_OK,
+                                    TFD_ICON_INFO,
+                                    TFD_BUT_OKYES
+                            );
 
                             break;
                         }
@@ -675,7 +678,7 @@ int ss_menu_run(){
                             // pick color
                             
                             colorCh = tinyfd_colorChooser(
-                                    "Pick color",
+                                    SS_DLG_CLRCHO_TITLE,
                                     NULL,
                                     colorstrc,
                                     colorstr);
