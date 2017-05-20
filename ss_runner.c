@@ -8,6 +8,8 @@
 
 #include <stdio.h>
 
+//#include "SDL2/SDL.h"
+
 #include "ss_menu.h"
 
 // internet told me to do this
@@ -22,7 +24,6 @@ int main(int argc, char *argv[]){
 
     ss_menu_run();
     printf("ending\n");
-
     return 0;
 }
 

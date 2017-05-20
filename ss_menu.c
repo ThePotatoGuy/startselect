@@ -40,6 +40,7 @@
 #include "ss_shape.h"
 #include "ss_statprocessor.h"
 #include "ss_stats.h"
+#include "ss_threaddata.h"
 #include "ss_window_constants.h"
 
 #include "ss_ps3_canvas.h"
@@ -57,52 +58,10 @@
 
 //  ENUMS   ===================================================================
 
-// recording state
-typedef enum {
-    ON,
-    OFF
-} RECORD_STATE;
 
 /*  TYPES   =================================================================*/
 
-/* temporary, holds mutex/cond/condition for quitting */
-typedef struct{
 
-    /* quit signal, broadcasted from openwindow */
-    pthread_mutex_t     *end_mutex;
-    int                 *end;
-
-    // stats have been sent signal
-    pthread_mutex_t     *sentstat_mutex;
-//    pthread_cond_t      *sentstat_cond;
-    int                 *sentstat;
-
-    // start recording signal
-    pthread_mutex_t     *recstart_mutex;
-//    pthread_cond_t      *recstart_cond;
-    int                 *recstart;
-
-    // stop recording signal
-    pthread_mutex_t     *recstop_mutex;
-    int                 *recstop;
-
-    // stat data
-    pthread_mutex_t     *stats_mutex;
-    ss_generic_controller_stats *stats;
-
-} ss_event_data;
-
-typedef struct{
-    SDL_Renderer *renderer;
-
-    // background
-    SDL_Texture *bg_texture;
-    SDL_Rect bg_dim;
-
-    // stats
-    ss_generic_controller_stats *stats;
-    ss_ps3_colors *statcolors;
-} render_data;
 
 //  STATIC VARIABLES    =======================================================
 
@@ -126,7 +85,7 @@ static int renderscreen(render_data *rdata);
 /*  IMPLEMENTATION  =========================================================*/
 
 void* ss_event_handling(void *thread_data){
-    ss_event_data *data;
+    ss_threaddata *data;
     int quit;
     XINPUT_STATE state;
     DWORD res;
@@ -232,7 +191,7 @@ void* ss_event_handling(void *thread_data){
 
 int ss_menu_run(){
 
-    ss_event_data data;
+    ss_threaddata data;
     render_data rdata;
     pthread_mutex_t end_mutex, sentstat_mutex, stats_mutex;
     pthread_mutex_t recstart_mutex, recstop_mutex;
@@ -756,57 +715,6 @@ int ss_menu_run(){
     SDL_Quit();
 
     return SS_RETURN_SUCCESS;
-}
-
-void* ss_open_window(void *thread_data){
-    SDL_Window *window;
-    ss_event_data *data;
-    int quit;
-
-    data = (ss_event_data*)thread_data;
-    quit = 0;
-
-    SDL_InitSubSystem(SDL_INIT_VIDEO); // init video so we can display a window
-
-    window = SDL_CreateWindow("Quit",100,100,100,100,0);
-   
-    if (window == NULL){
-        // window failed to create
-
-        printf("Could not create window: %s\n", SDL_GetError());
-        quit = 1;
-    }
-
-    SDL_Event event; // event handler
-
-    // event handling loop
-    while (!quit){
-        // only do things when we have an event
-        while (SDL_PollEvent(&event)){
-
-            // user requets quit
-            if (event.type == SDL_QUIT){
-                quit = 1;
-            }else if (event.type == SDL_KEYDOWN){
-
-                // spacebar stuff
-                switch (event.key.keysym.sym){
-                    case SDLK_KP_SPACE:
-                    {
-                        quit = 1;
-                        break;
-                    }
-                    default: break;
-                }
-            }
-        }
-    }
-
-    // quit
-    SDL_DestroyWindow(window);
-    SDL_QuitSubSystem(SDL_INIT_VIDEO);
-    ph_set(data->end_mutex, data->end, 1);
-    return NULL;
 }
 
 //  STATIC IMPLEMENTATION   ===================================================
