@@ -9,6 +9,8 @@
 #ifndef SS_MENUDATA_H
 #define SS_MENUDATA_H
 
+#include "SDL2/SDL.h"
+
 #include "ss_renderdata.h"
 #include "ss_threaddata.h"
 
@@ -33,6 +35,9 @@ typedef struct{
 
     // thread data for menu threads
     ss_threaddata *thread_data;
+
+    // sdl window
+    SDL_Window *window;
 
 } ss_menudata;
 

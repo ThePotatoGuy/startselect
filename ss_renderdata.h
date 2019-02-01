@@ -28,6 +28,10 @@ typedef struct{
     // stats
     ss_generic_controller_stats *stats;
     ss_ps3_colors *statcolors;
+
+    // colorstrings
+    unsigned char colorstrdef[SS_CLRSTR_LEN];
+    unsigned char colorstrset[SS_CLRSTR_LEN];
 } ss_renderdata;
 
 #endif 

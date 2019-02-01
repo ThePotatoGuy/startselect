@@ -14,6 +14,11 @@
 
 #include "ss_ps3_constants.h"
 
+//  DEFINES ===================================================================
+
+// length of a color string
+#define SS_CLRSTR_LEN 3
+
 //  TYPES   ===================================================================
 
 // holds the color values for a particular ps3

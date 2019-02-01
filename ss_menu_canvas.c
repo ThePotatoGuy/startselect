@@ -1,40 +1,23 @@
 /**
- * Canvas menu functions
+ * Implementation Menu Canvas functions
  * @author Andre Allan Ponce
  * @email andreponce@null.net
- *
- * Contains all functions related to the canvas that involve dialog boxes
- * or other administrative things
  */
-
-#ifndef SS_MENU_CANVAS_H
-#define SS_MENU_CANVAS_H
 
 #include <stdbool.h>
 
+#include "SDL2/SDL.h"
+
 #include "ss_menudata.h"
+#include "ss_renderdata.h"
+#include "ss_threaddata.h"
 
-//  FUNCTIONS   ===============================================================
+#include "ss_menu_canvas.h"
 
-/*
- * Clears the stats data of the given menu data struct IF the recording state 
- * is OFF. If the recording state is on, no data is cleared and a message will
- * be logged. 
- *
- * If suppress is false, a message dialog box will also be displayed when data
- * is cleared or cannot be cleared.
- *
- * A confirmation dialog box will always be displayed even if suppress is true
- *
- * IN
- *  @param menudata - menu data struct
- *  @param suppress - true will suppress message dialog boxes (except 
- *      confirmation), false will not
- *
- * OUT:
- *  @returns SS_RETURN_SUCCESS on success, SS_RETURN_FALSE if not
- */
-int ss_mcvs_clearstats(ss_menudata *menudata, bool suppress);
+//  IMPLEMENTATION  ===========================================================
+
+int ss_mcvs_clearstats(ss_menudata *menudata, bool suppress){
+} // ss_mcvs_clearstats
 
 /*
  * Generates the controller image using the given menu data struct
@@ -165,4 +148,3 @@ int ss_mcvs_setrec(ss_menudata *menudata, SS_RECSTATE state, bool suppress);
  */
 int ss_mcvs_showhelp(ss_menudata *menudata);
 
-#endif
